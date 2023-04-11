@@ -1,5 +1,6 @@
 data/
 output/
+eval_result/
 HS-Pose-env/
 *.npy
 *.pth

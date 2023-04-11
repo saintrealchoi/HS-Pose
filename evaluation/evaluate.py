@@ -17,6 +17,8 @@ from evaluation.eval_utils import setup_logger
 from evaluation.eval_utils_v1 import compute_degree_cm_mAP
 from tqdm import tqdm
 
+import open3d as o3d
+
 def seed_init_fn(seed):
     np.random.seed(seed)
     random.seed(seed)
@@ -61,21 +63,34 @@ def evaluate(argv):
         if FLAGS.resume:
             state_dict = torch.load(FLAGS.resume_model)['posenet_state_dict']
             unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
+            
+            # why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
+            # rename_keys = ["posenet.face_recon.conv_0.STE_layer.weight", "posenet.face_recon.conv_1.STE_layer.weight", "posenet.face_recon.conv_2.STE_layer.weight", "posenet.face_recon.conv_3.STE_layer.weight", "posenet.face_recon.conv_4.STE_layer.weight"]
+            # for key in list(state_dict.keys()):
+            #     for i,rename_key in enumerate(why_keys):
+            #         if key.startswith(rename_key):
+            #             state_dict[rename_keys[i]] = state_dict.pop(why_keys[i])
+                     
+                ##########################################################
             for key in list(state_dict.keys()):
                 for net_to_delete in unnecessary_nets:
                     if key.startswith(net_to_delete):
                         state_dict.pop(key)
+                #########################################################
                 # Adapt weight name to match old code version. 
                 # Not necessary for weights trained using newest code. 
                 # Dose not change any function. 
+                #########################################################
                 if 'resconv' in key:
                     state_dict[key.replace("resconv", "STE_layer")] = state_dict.pop(key)
             network.load_state_dict(state_dict, strict=True) 
+                #########################################################
         else:
             raise NotImplementedError
         # start to test
         network = network.eval()
         pred_results = []
+        pcd = o3d.geometry.PointCloud()
         for i, data in tqdm(enumerate(val_dataset, 1), dynamic_ncols=True):
             if data is None:
                 continue
@@ -96,6 +111,10 @@ def evaluate(argv):
                           sym=sym,
                         #   def_mask=data['roi_mask'].to(device)
                           )
+            # pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][3].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][0].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()
             p_T = output_dict['Pred_T'].detach()
@@ -159,6 +178,7 @@ def evaluate(argv):
         messages.append('3D IoU at 75: {:.1f}'.format(iou_aps[idx, iou_75_idx] * 100))
         messages.append('5 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_02_idx] * 100))
         messages.append('5 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_05_idx] * 100))
+        messages.append('5 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_10_idx] * 100))
         messages.append('10 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_02_idx] * 100))
         messages.append('10 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_05_idx] * 100))
         messages.append('10 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_10_idx] * 100))
@@ -176,6 +196,7 @@ def evaluate(argv):
         messages.append('3D IoU at 75: {:.1f}'.format(iou_aps[idx, iou_75_idx] * 100))
         messages.append('5 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_02_idx] * 100))
         messages.append('5 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_05_idx] * 100))
+        messages.append('5 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_10_idx] * 100))
         messages.append('10 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_02_idx] * 100))
         messages.append('10 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_05_idx] * 100))
         messages.append('10 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_10_idx] * 100))
@@ -194,6 +215,7 @@ def evaluate(argv):
             messages.append('3D IoU at 75: {:.1f}'.format(iou_aps[idx, iou_75_idx] * 100))
             messages.append('5 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_02_idx] * 100))
             messages.append('5 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_05_idx] * 100))
+            messages.append('5 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_05_idx, shift_10_idx] * 100))
             messages.append('10 degree, 2cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_02_idx] * 100))
             messages.append('10 degree, 5cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_05_idx] * 100))
             messages.append('10 degree, 10cm: {:.1f}'.format(pose_aps[idx, degree_10_idx, shift_10_idx] * 100))
