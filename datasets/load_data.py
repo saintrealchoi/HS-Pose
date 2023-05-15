@@ -239,11 +239,16 @@ class PoseDataset(data.Dataset):
         mask_target[mask != inst_id] = 0.0
         mask_target[mask == inst_id] = 1.0
 
-        # depth[mask_target == 0.0] = 0.0
+        roi_rgb = crop_resize_by_warp_affine(
+            rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+        )
+        roi_rgb = np.expand_dims(roi_rgb, axis=0)
+        
         roi_mask = crop_resize_by_warp_affine(
             mask_target, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
         )
         roi_mask = np.expand_dims(roi_mask, axis=0)
+        # depth[mask_target == 0.0] = 0.0
         roi_depth = crop_resize_by_warp_affine(
             depth, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
         )
@@ -272,7 +277,8 @@ class PoseDataset(data.Dataset):
         # add nnoise to roi_mask
         roi_mask_def = defor_2D(roi_mask, rand_r=FLAGS.roi_mask_r, rand_pro=FLAGS.roi_mask_pro)
 
-        pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
+        # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
+        pcl_in = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
         if len(pcl_in) < 50:
             return self.__getitem__((index + 1) % self.__len__())
         pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
@@ -319,6 +325,22 @@ class PoseDataset(data.Dataset):
             pcl = pcl[ids]
         return pcl
 
+    def _depth_bgr_to_pcl(self, depth, rgb, K, xymap, mask):
+        K = K.reshape(-1)
+        cx, cy, fx, fy = K[2], K[5], K[0], K[4]
+        depth = depth.reshape(-1).astype(np.float)
+        # bgr
+        valid = ((depth > 0) * mask.reshape(-1)) > 0
+        depth = depth[valid]
+        b = rgb[:,:,:,0].reshape(-1).astype(np.float)[valid]
+        g = rgb[:,:,:,1].reshape(-1).astype(np.float)[valid]
+        r = rgb[:,:,:,2].reshape(-1).astype(np.float)[valid]
+        x_map = xymap[0].reshape(-1)[valid]
+        y_map = xymap[1].reshape(-1)[valid]
+        real_x = (x_map - cx) * depth / fx
+        real_y = (y_map - cy) * depth / fy
+        pcl = np.stack((real_x, real_y, depth, b, g, r), axis=-1)
+        return pcl.astype(np.float32)
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]

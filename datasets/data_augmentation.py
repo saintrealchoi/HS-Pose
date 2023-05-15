@@ -68,7 +68,7 @@ def defor_3D_bb(pc, R, t, s, sym=None, aug_bb=None):
 
 
 def defor_3D_bb_in_batch(pc, model_point, R, t, s, sym=None, aug_bb=None):
-    pc_reproj = torch.matmul(R.transpose(-1, -2), (pc - t.unsqueeze(-2)).transpose(-1, -2)).transpose(-1, -2)
+    pc_reproj = torch.matmul(R.transpose(-1, -2), (pc[:,:,:3] - t.unsqueeze(-2)).transpose(-1, -2)).transpose(-1, -2)
     sym_aug_bb = (aug_bb + aug_bb[:, [2, 1, 0]]) / 2.0
     sym_flag = (sym[:, 0] == 1).unsqueeze(-1)
     new_aug_bb = torch.where(sym_flag, sym_aug_bb, aug_bb)
@@ -76,7 +76,7 @@ def defor_3D_bb_in_batch(pc, model_point, R, t, s, sym=None, aug_bb=None):
     model_point_new = model_point * new_aug_bb.unsqueeze(-2)
     pc_new = (torch.matmul(R, pc_reproj.transpose(-2, -1)) + t.unsqueeze(-1)).transpose(-2, -1)
     s_new = s * new_aug_bb
-    return pc_new, s_new, model_point_new
+    return torch.cat((pc_new,pc[:,:,3:]),dim=2), s_new, model_point_new
 
 def defor_3D_bc(pc, R, t, s, model_point, nocs_scale):
     # resize box cage along y axis, the size s is modified
@@ -108,7 +108,7 @@ def defor_3D_bc_in_batch(pc, R, t, s, model_point, nocs_scale):
     bs = pc.size(0)
     ey_up = torch.rand((bs,1), device=pc.device) * (1.2 - 0.8) + 0.8
     ey_down = torch.rand((bs, 1),  device=pc.device) * (1.2 - 0.8) + 0.8
-    pc_reproj = torch.matmul(R.transpose(-1,-2), (pc-t.unsqueeze(-2)).transpose(-1,-2)).transpose(-1,-2)
+    pc_reproj = torch.matmul(R.transpose(-1,-2), (pc[:,:,:3]-t.unsqueeze(-2)).transpose(-1,-2)).transpose(-1,-2)
 
     s_y = s[..., 1].unsqueeze(-1)
     per_point_resize = (pc_reproj[..., 1] + s_y / 2.0) / s_y * (ey_up - ey_down) + ey_down
@@ -123,7 +123,7 @@ def defor_3D_bc_in_batch(pc, R, t, s, model_point, nocs_scale):
     new_model_point[..., 2] = new_model_point[..., 2] * model_point_resize
 
     s_new = (torch.max(new_model_point, dim=1)[0] - torch.min(new_model_point, dim=1)[0])*nocs_scale.unsqueeze(-1)
-    return pc_new, s_new, ey_up, ey_down
+    return torch.cat((pc_new,pc[:,:,3:]),dim=2), s_new, ey_up, ey_down
 
 # def defor_3D_pc(pc, r=0.05):
 #     points_defor = torch.randn(pc.shape).to(pc.device)
@@ -133,11 +133,13 @@ def defor_3D_bc_in_batch(pc, R, t, s, model_point, nocs_scale):
 def defor_3D_pc(pc, gt_t, r=0.2, points_defor=None, return_defor=False):
 
     if points_defor is None:
-        points_defor = torch.rand(pc.shape).to(pc.device)*r
-    new_pc = pc + points_defor*(pc-gt_t.unsqueeze(1))
+        pc_shape = pc.shape
+        pc_shape = torch.Size([pc_shape[0],pc_shape[1],pc_shape[2]-3])
+        points_defor = torch.rand(pc_shape).to(pc.device)*r
+    new_pc = pc[:,:,:3] + points_defor*(pc[:,:,:3]-gt_t.unsqueeze(1))
     if return_defor:
-        return new_pc, points_defor
-    return new_pc
+        return torch.cat((new_pc,pc[:,:,3:]),dim=2), points_defor
+    return torch.cat((new_pc,pc[:,:,3:]),dim=2)
 
 
 # point cloud based data augmentation
@@ -181,13 +183,13 @@ def defor_3D_rt(pc, R, t, aug_rt_t, aug_rt_r):
     return pc, R, t
 
 def defor_3D_rt_in_batch(pc, R, t, aug_rt_t, aug_rt_r):
-    pc_new = pc + aug_rt_t.unsqueeze(-2)
+    pc_new = pc[:,:,:3] + aug_rt_t.unsqueeze(-2)
     t_new = t + aug_rt_t
     pc_new = torch.matmul(aug_rt_r, pc_new.transpose(-2,-1)).transpose(-2,-1)
 
     R_new = torch.matmul(aug_rt_r, R)
     t_new = torch.matmul(aug_rt_r, t_new.unsqueeze(-1)).squeeze(-1)
-    return pc_new, R_new, t_new
+    return torch.cat((pc_new,pc[:,:,3:]),dim=2), R_new, t_new
 
 def get_rotation(x_, y_, z_):
     # print(math.cos(math.pi/2))

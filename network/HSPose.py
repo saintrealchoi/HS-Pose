@@ -104,7 +104,7 @@ class HSPose(nn.Module):
             gt_fsnet_list = {
                 'Rot1': gt_green_v,
                 'Rot2': gt_red_v,
-                'Recon': PC,
+                'Recon': PC[:,:,:3],
                 'Tran': gt_t,
                 'Size': gt_s,
             }
@@ -123,7 +123,7 @@ class HSPose(nn.Module):
             }
 
             gt_prop_list = {
-                'Points': PC,
+                'Points': PC[:,:,:3],
                 'R': gt_R,
                 'T': gt_t,
                 'Mean_shape': mean_shape,
@@ -148,7 +148,7 @@ class HSPose(nn.Module):
                 'T': gt_t,
                 'Size': gt_s,
                 'Mean_shape': mean_shape,
-                'Points': PC,
+                'Points': PC[:,:,:3],
             }
 
             recon_loss = self.loss_recon(self.name_recon_list, pred_recon_list, gt_recon_list, sym, obj_id)
@@ -164,7 +164,7 @@ class HSPose(nn.Module):
             }
 
             gt_geo_list = {
-                'Points': PC,
+                'Points': PC[:,:,:3],
                 'R': gt_R,
                 'T': gt_t,
                 'Mean_shape': mean_shape,
