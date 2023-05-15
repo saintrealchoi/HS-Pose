@@ -1,3 +1,5 @@
+nohup*
+.vscode/
 test/
 data/
 output/
