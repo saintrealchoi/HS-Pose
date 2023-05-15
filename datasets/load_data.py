@@ -279,6 +279,7 @@ class PoseDataset(data.Dataset):
 
         # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
         pcl_in = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
+        pcl_in[:,3:] = pcl_in[:,3:]* 5.0
         if len(pcl_in) < 50:
             return self.__getitem__((index + 1) % self.__len__())
         pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
