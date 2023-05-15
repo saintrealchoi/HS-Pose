@@ -551,21 +551,6 @@ def align_rotation(sRT):
     aligned_sRT[:3, 3] = T
     return aligned_sRT
 
-def draw_2d_boxes(img, label_pkl):
-    img_pts = np.int32(img_pts).reshape(-1, 2)
-    # draw ground layer in darker color
-    color_ground = (int(color[0] * 0.3), int(color[1] * 0.3), int(color[2] * 0.3))
-    for i, j in zip([4, 5, 6, 7], [5, 7, 4, 6]):
-        img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color_ground, 2)
-    # draw pillars in minor darker color
-    color_pillar = (int(color[0] * 0.6), int(color[1] * 0.6), int(color[2] * 0.6))
-    for i, j in zip(range(4), range(4, 8)):
-        img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color_pillar, 2)
-    # draw top layer in original color
-    for i, j in zip([0, 1, 2, 3], [1, 3, 0, 2]):
-        img = cv2.line(img, tuple(img_pts[i]), tuple(img_pts[j]), color, 2)
-
-    return img
 
 def draw_bboxes(img, img_pts, color):
     img_pts = np.int32(img_pts).reshape(-1, 2)

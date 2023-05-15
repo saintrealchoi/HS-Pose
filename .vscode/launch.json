@@ -5,26 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Train",
-      "type": "python",
-      "request": "launch",
-      "module": "engine.train",
-      "args": [
-        "--dataset_dir",
-        "./data/NOCS",
-        "--model_save",
-        "output/train",
-      ],
-      "justMyCode": true
-    },
-    {
-      "name": "Test",
+      "name": "Python: Module",
       "type": "python",
       "request": "launch",
       "module": "evaluation.evaluate",
       "args": [
         "--model_save",
-        "output/test22",
+        "output/test",
         "--resume",
         "1",
         "--resume_model",
@@ -35,7 +22,7 @@
       "justMyCode": true
     },
     {
-      "name": "None",
+      "name": "Python: Current File",
       "type": "python",
       "request": "launch",
       "program": "${file}",
