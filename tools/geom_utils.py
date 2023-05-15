@@ -293,7 +293,7 @@ if __name__ == '__main__':
     sym = torch.tensor([1, 0]).reshape(2, 1)
     from tools.training_utils import get_gt_v
 
-    green_R, red_R = get_gt_v(R, axis=3)
+    green_R, red_R = get_gt_v(R, axis=3) # green = [b,e,h], red = [a,d,g]
     # print(green_R, red_R)
     pred_RT = generate_RT_old([green_R * 2, red_R], [s, s * 0.9], t, mode='vec', sym=sym)
     pred_RT_new = generate_RT([green_R * 2, red_R], [s, s * 0.9], t, mode='vec', sym=sym)

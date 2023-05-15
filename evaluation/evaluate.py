@@ -111,10 +111,20 @@ def evaluate(argv):
                           sym=sym,
                         #   def_mask=data['roi_mask'].to(device)
                           )
-            # pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][3].detach().cpu().numpy())
+                
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][5].detach().cpu().numpy())
             # o3d.visualization.draw_geometries([pcd])
-            # pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][0].detach().cpu().numpy())
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][1].detach().cpu().numpy())
             # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][2].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][3].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][4].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][5].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()
             p_T = output_dict['Pred_T'].detach()

@@ -33,7 +33,7 @@ class PoseDataset(data.Dataset):
         assert source in ['CAMERA', 'Real', 'CAMERA+Real']
         assert mode in ['train', 'test']
         img_list_path = ['CAMERA/train_list.txt', 'Real/train_list.txt',
-                         'CAMERA/val_list.txt', 'Real/test_list.txt']
+                         'CAMERA/val_list.txt', 'Real/test_test.txt']
         model_file_path = ['obj_models/camera_train.pkl', 'obj_models/real_train.pkl',
                            'obj_models/camera_val.pkl', 'obj_models/real_test.pkl']
 
