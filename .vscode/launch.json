@@ -28,9 +28,13 @@
         "--resume",
         "1",
         "--resume_model",
-        "./model.pth",
+        "./output/models/rgb/model_149.pth",
         "--eval_seed",
-        "1677483078"
+        "1677483078",
+        "--detection_dir",
+        "/home/sungjin/HS-Pose/data/segmentation_results",
+        "--dataset_dir",
+        "/home/sungjin/HS-Pose/data"
       ],
       "justMyCode": true
     },

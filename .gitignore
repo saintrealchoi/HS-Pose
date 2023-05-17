@@ -1,5 +1,5 @@
 nohup*
-.vscode/
+.vscode/launch.json
 test/
 data/
 output/
