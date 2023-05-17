@@ -33,7 +33,7 @@ class PoseDataset(data.Dataset):
         assert source in ['CAMERA', 'Real', 'CAMERA+Real']
         assert mode in ['train', 'test']
         img_list_path = ['CAMERA/train_list.txt', 'Real/train_list.txt',
-                         'CAMERA/val_list.txt', 'Real/test_test.txt']
+                         'CAMERA/val_list.txt', 'Real/test_list.txt']
         model_file_path = ['obj_models/camera_train.pkl', 'obj_models/real_train.pkl',
                            'obj_models/camera_val.pkl', 'obj_models/real_test.pkl']
 
@@ -233,6 +233,11 @@ class PoseDataset(data.Dataset):
             ).transpose(2, 0, 1)
             mask_target = mask.copy().astype(np.float)
             # depth[mask_target == 0.0] = 0.0
+            roi_rgb = crop_resize_by_warp_affine(
+                rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+            )
+            roi_rgb = np.expand_dims(roi_rgb, axis=0)
+            
             roi_mask = crop_resize_by_warp_affine(
                 mask_target, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             )
@@ -250,7 +255,9 @@ class PoseDataset(data.Dataset):
             roi_m_d_valid = roi_mask.astype(np.bool) * depth_valid
             if np.sum(roi_m_d_valid) <= 1.0:
                 return None
-            pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
+            # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
+            pcl_in = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask) / 1000.0
+            pcl_in[:,3:] = pcl_in[:,3:]* 5.0
             pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
 
             # occupancy canonical
@@ -305,7 +312,22 @@ class PoseDataset(data.Dataset):
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
         return pcl
-
+    def _depth_bgr_to_pcl(self, depth, rgb, K, xymap, mask):
+        K = K.reshape(-1)
+        cx, cy, fx, fy = K[2], K[5], K[0], K[4]
+        depth = depth.reshape(-1).astype(np.float)
+        # bgr
+        valid = ((depth > 0) * mask.reshape(-1)) > 0
+        depth = depth[valid]
+        b = rgb[:,:,:,0].reshape(-1).astype(np.float)[valid]
+        g = rgb[:,:,:,1].reshape(-1).astype(np.float)[valid]
+        r = rgb[:,:,:,2].reshape(-1).astype(np.float)[valid]
+        x_map = xymap[0].reshape(-1)[valid]
+        y_map = xymap[1].reshape(-1)[valid]
+        real_x = (x_map - cx) * depth / fx
+        real_y = (y_map - cy) * depth / fy
+        pcl = np.stack((real_x, real_y, depth, b, g, r), axis=-1)
+        return pcl.astype(np.float32)
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]
