@@ -278,19 +278,22 @@ class PoseDataset(data.Dataset):
         roi_mask_def = defor_2D(roi_mask, rand_r=FLAGS.roi_mask_r, rand_pro=FLAGS.roi_mask_pro)
 
         # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
-        pcl_in = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
+        pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def)
+        pcl_in = pcl_in / 1000.0
         pcl_in[:,3:] = pcl_in[:,3:]* 5.0
         if len(pcl_in) < 50:
             return self.__getitem__((index + 1) % self.__len__())
-        pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
+        pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
         # sym
         sym_info = self.get_sym_info(self.id2cat_name[str(cat_id + 1)], mug_handle=mug_handle)
         # generate augmentation parameters
         bb_aug, rt_aug_t, rt_aug_R = self.generate_aug_parameters()
 
-
         data_dict = {}
         data_dict['pcl_in'] = torch.as_tensor(pcl_in.astype(np.float32)).contiguous()
+        data_dict['rgb_in'] = torch.as_tensor(roi_rgb.astype(np.float32)).contiguous()
+        data_dict['depth_valid'] = torch.as_tensor(valid.astype(np.bool8)).contiguous()
+        data_dict['sample_idx'] = torch.as_tensor(indices).contiguous()
         data_dict['cat_id'] = torch.as_tensor(cat_id, dtype=torch.float32).contiguous()
         data_dict['rotation'] = torch.as_tensor(rotation, dtype=torch.float32).contiguous()
         data_dict['translation'] = torch.as_tensor(translation, dtype=torch.float32).contiguous()
@@ -321,10 +324,11 @@ class PoseDataset(data.Dataset):
         total_pts_num = pcl.shape[0]
         if total_pts_num < n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
+            ids = np.arange(total_pts_num)
         elif total_pts_num > n_pts:
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
-        return pcl
+        return pcl,ids
 
     def _depth_bgr_to_pcl(self, depth, rgb, K, xymap, mask):
         K = K.reshape(-1)
@@ -341,7 +345,7 @@ class PoseDataset(data.Dataset):
         real_x = (x_map - cx) * depth / fx
         real_y = (y_map - cy) * depth / fy
         pcl = np.stack((real_x, real_y, depth, b, g, r), axis=-1)
-        return pcl.astype(np.float32)
+        return pcl.astype(np.float32),valid.astype(np.bool8)
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]

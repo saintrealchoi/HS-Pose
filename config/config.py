@@ -50,9 +50,9 @@ flags.DEFINE_string("train_stage", 'PoseNet_only', "for train stage")
 # flags.DEFINE_integer('eval', 0, '1 for eval mode')
 flags.DEFINE_string('device', 'cuda:0', '')
 # flags.DEFINE_string("train_gpu", '0', "gpu no. for training")
-flags.DEFINE_integer("num_workers", 20, "cpu cores for loading dataset")
+flags.DEFINE_integer("num_workers", 1, "cpu cores for loading dataset")
 flags.DEFINE_integer("seed", -1, "random seed for reproducibility")
-flags.DEFINE_integer('batch_size', 16, '')
+flags.DEFINE_integer('batch_size', 2, '')
 flags.DEFINE_integer('total_epoch', 150, 'total epoches in training')
 flags.DEFINE_integer('train_steps', 1500, 'number of batches in each epoch')  # batchsize is 8, then 3000
 #####################space is not enough, trade time for space####################

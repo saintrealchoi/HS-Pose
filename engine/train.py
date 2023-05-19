@@ -8,7 +8,6 @@ from absl import app
 from config.config import *
 from tools.training_utils import build_lr_rate, build_optimizer
 from network.HSPose import HSPose 
-
 FLAGS = flags.FLAGS
 from datasets.load_data import PoseDataset
 from tqdm import tqdm
@@ -19,6 +18,7 @@ import numpy as np
 import tensorflow as tf
 from tools.eval_utils import setup_logger
 from tensorflow.compat.v1 import Summary
+
 torch.autograd.set_detect_anomaly(True)
 device = 'cuda'
 
@@ -42,6 +42,7 @@ def train(argv):
     Train_stage = 'PoseNet_only'
     network = HSPose(Train_stage)
     network = network.to(device)
+    
     train_steps = FLAGS.train_steps    
     #  build optimizer
     param_list = network.build_params(training_stage_freeze=[])
@@ -75,7 +76,10 @@ def train(argv):
             output_dict, loss_dict \
                 = network(
                           obj_id=data['cat_id'].to(device), 
-                          PC=data['pcl_in'].to(device), 
+                          PC=data['pcl_in'].to(device),
+                          rgb=data['rgb_in'].to(device),
+                          depth_valid = data['depth_valid'].to(device),
+                          sample_idx = data['sample_idx'].to(device),
                           gt_R=data['rotation'].to(device), 
                           gt_t=data['translation'].to(device),
                           gt_s=data['fsnet_scale'].to(device), 

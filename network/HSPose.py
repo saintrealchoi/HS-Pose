@@ -8,6 +8,8 @@ import absl.flags as flags
 FLAGS = flags.FLAGS
 
 from network.fs_net_repo.PoseNet9D import PoseNet9D
+from network.PSPNet import PSPNet
+# from network.PSPNET_ANOTHER import PSPNet
 from network.point_sample.pc_sample import PC_sample
 from datasets.data_augmentation import defor_3D_pc
 from datasets.data_augmentation import defor_3D_bb_in_batch, defor_3D_rt_in_batch, defor_3D_bc_in_batch
@@ -23,6 +25,7 @@ from tools.lynne_lib.vision_utils import show_point_cloud
 class HSPose(nn.Module):
     def __init__(self, train_stage):
         super(HSPose, self).__init__()
+        self.rgbnet = PSPNet()
         self.posenet = PoseNet9D()
         self.train_stage = train_stage
         self.loss_recon = recon_6face_loss()
@@ -34,7 +37,8 @@ class HSPose(nn.Module):
 
     def forward(self, PC=None, depth=None, obj_id=None, camK=None,
                 gt_R=None, gt_t=None, gt_s=None, mean_shape=None, gt_2D=None, sym=None, aug_bb=None,
-                aug_rt_t=None, aug_rt_r=None, def_mask=None, model_point=None, nocs_scale=None, do_loss=False):
+                aug_rt_t=None, aug_rt_r=None, def_mask=None, model_point=None, nocs_scale=None, do_loss=False,
+                rgb=None, depth_valid=None, sample_idx=None):
         output_dict = {}
 
         if PC is None:
@@ -51,6 +55,16 @@ class HSPose(nn.Module):
 
         obj_mask = None
         sketch = None
+        
+        rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
+        feature, final, classifier = self.rgbnet(rgb)
+        bs = feature.shape[0]
+        feature = feature.view(bs,256,256*256).permute(0,2,1)
+        pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
+        for i in range(bs):
+            tmp = feature[i,depth_valid[i],:]
+            pc_feature[i] = tmp[sample_idx[i],:]
+        PC = torch.cat((PC,pc_feature),dim=-1)
         PC = PC.detach()
         if FLAGS.train:
             with torch.no_grad():
