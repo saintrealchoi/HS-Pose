@@ -57,13 +57,15 @@ class HSPose(nn.Module):
         sketch = None
         
         rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
-        feature, final, classifier = self.rgbnet(rgb)
+        feature, _, _ = self.rgbnet(rgb)
         bs = feature.shape[0]
         feature = feature.view(bs,256,256*256).permute(0,2,1)
         pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
         for i in range(bs):
             tmp = feature[i,depth_valid[i],:]
+            
             pc_feature[i] = tmp[sample_idx[i],:]
+            # pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
         PC = torch.cat((PC,pc_feature),dim=-1)
         PC = PC.detach()
         if FLAGS.train:

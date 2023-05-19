@@ -324,7 +324,7 @@ class PoseDataset(data.Dataset):
         total_pts_num = pcl.shape[0]
         if total_pts_num < n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
-            ids = np.arange(total_pts_num)
+            ids = np.arange(n_pts)
         elif total_pts_num > n_pts:
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
