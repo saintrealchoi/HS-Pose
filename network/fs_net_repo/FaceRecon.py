@@ -31,7 +31,7 @@ class FaceRecon(nn.Module):
         self.recon_num = 3
         self.face_recon_num = FLAGS.face_recon_c
 
-        dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c, 3])
+        dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c, 259]) # TODO:
         # 16: total 6 categories, 256 is global feature
 
         if FLAGS.train:
