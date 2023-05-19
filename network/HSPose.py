@@ -63,8 +63,10 @@ class HSPose(nn.Module):
         pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
         for i in range(bs):
             tmp = feature[i,depth_valid[i],:]
-            
-            pc_feature[i] = tmp[sample_idx[i],:]
+            if tmp.shape[0] < 1028:
+                pc_feature[i] = torch.cat([torch.tile(tmp,(1028//tmp.shape[0],1)),tmp[:1028%tmp.shape[0]]],axis=0)
+            else:
+                pc_feature[i] = tmp[sample_idx[i],:]
             # pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
         PC = torch.cat((PC,pc_feature),dim=-1)
         PC = PC.detach()
@@ -195,7 +197,7 @@ class HSPose(nn.Module):
             loss_dict['prop_loss'] = prop_loss
         else:
             return output_dict
-
+        # torch.cuda.synchronize()
         return output_dict, loss_dict
 
     def data_augment(self, PC, gt_R, gt_t, gt_s, mean_shape, sym, aug_bb, aug_rt_t, aug_rt_r,
