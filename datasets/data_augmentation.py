@@ -134,7 +134,7 @@ def defor_3D_pc(pc, gt_t, r=0.2, points_defor=None, return_defor=False):
 
     if points_defor is None:
         pc_shape = pc.shape
-        pc_shape = torch.Size([pc_shape[0],pc_shape[1],pc_shape[2]-3])
+        pc_shape = torch.Size([pc_shape[0],pc_shape[1],pc_shape[2]-259]) # TODO:
         points_defor = torch.rand(pc_shape).to(pc.device)*r
     new_pc = pc[:,:,:3] + points_defor*(pc[:,:,:3]-gt_t.unsqueeze(1))
     if return_defor:
