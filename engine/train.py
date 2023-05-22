@@ -73,6 +73,7 @@ def train(argv):
     for epoch in range(s_epoch, FLAGS.total_epoch):
         i = 0
         for data in tqdm(train_dataloader, desc=f'Training {epoch}/{FLAGS.total_epoch}', dynamic_ncols=True):
+            torch.cuda.synchronize()
             output_dict, loss_dict \
                 = network(
                           obj_id=data['cat_id'].to(device), 

@@ -10,10 +10,8 @@
       "request": "launch",
       "module": "engine.train",
       "args": [
-        "--dataset_dir",
-        "./data",
         "--model_save",
-        "output/train",
+        "output/models/rgb-direct/",
       ],
       "justMyCode": true
     },
