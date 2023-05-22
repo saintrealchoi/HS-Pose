@@ -203,6 +203,9 @@ class PoseDataset(data.Dataset):
         obj_ids_0base = []
         obj_valid_index = []
         point_clouds = []
+        raw_rgb = []
+        depth_valids = []
+        pcl_indices = []
 
         for j in range(num_instance):
             cat_id = detection_dict['pred_class_ids'][j]
@@ -256,9 +259,10 @@ class PoseDataset(data.Dataset):
             if np.sum(roi_m_d_valid) <= 1.0:
                 return None
             # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
-            pcl_in = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask) / 1000.0
+            pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask)
+            pcl_in = pcl_in / 1000.0
             pcl_in[:,3:] = pcl_in[:,3:]* 5.0
-            pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
+            pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
 
             # occupancy canonical
             # sym
@@ -270,6 +274,9 @@ class PoseDataset(data.Dataset):
             obj_ids.append(cat_id)
             obj_ids_0base.append(cat_id - 1)
             point_clouds.append(pcl_in)
+            raw_rgb.append(roi_rgb)
+            depth_valids.append(valid)
+            pcl_indices.append(indices)
 
         if self.per_obj_id is not None:
             for key in ['pred_class_ids', 'pred_bboxes', 'pred_scores']:
@@ -283,13 +290,18 @@ class PoseDataset(data.Dataset):
         obj_ids = np.array(obj_ids)
         obj_ids_0base = np.array(obj_ids_0base)
         point_clouds = np.array(point_clouds)
-
+        raw_rgb = np.array(raw_rgb)
+        depth_valids = np.array(depth_valids)
+        pcl_indices = np.array(pcl_indices)
         data_dict = {}
         data_dict['cat_id'] = torch.as_tensor(obj_ids)
         data_dict['cat_id_0base'] = torch.as_tensor(obj_ids_0base)
         data_dict['sym_info'] = torch.as_tensor(sym_infos.astype(np.float32)).contiguous()
         data_dict['mean_shape'] = torch.as_tensor(mean_shapes, dtype=torch.float32).contiguous()
         data_dict['pcl_in'] = torch.as_tensor(point_clouds.astype(np.float32)).contiguous()
+        data_dict['rgb_in'] =torch.as_tensor(raw_rgb.astype(np.float32)).contiguous()
+        data_dict['sample_idx'] = torch.as_tensor(pcl_indices).contiguous()
+        data_dict['depth_valid'] = torch.as_tensor(depth_valids.astype(np.bool8)).contiguous()
         return data_dict, detection_dict, gts
 
     def _get_depth_normalize(self, roi_depth, roi_m_d_valid):
@@ -308,10 +320,11 @@ class PoseDataset(data.Dataset):
         total_pts_num = pcl.shape[0]
         if total_pts_num < n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
+            ids = np.arange(n_pts)
         elif total_pts_num > n_pts:
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
-        return pcl
+        return pcl,ids
     def _depth_bgr_to_pcl(self, depth, rgb, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]
@@ -327,7 +340,7 @@ class PoseDataset(data.Dataset):
         real_x = (x_map - cx) * depth / fx
         real_y = (y_map - cy) * depth / fy
         pcl = np.stack((real_x, real_y, depth, b, g, r), axis=-1)
-        return pcl.astype(np.float32)
+        return pcl.astype(np.float32),valid.astype(np.bool8)
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]

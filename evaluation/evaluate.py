@@ -109,15 +109,17 @@ def evaluate(argv):
                           obj_id=data['cat_id_0base'].to(device), 
                           mean_shape=mean_shape,
                           sym=sym,
-                        #   def_mask=data['roi_mask'].to(device)
+                          rgb = data['rgb_in'].to(device),
+                          depth_valid = data['depth_valid'].to(device),
+                          sample_idx = data['sample_idx'].to(device)
                           )
                 
-            SEE = 5
+            # SEE = 5
             
-            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
-            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
             
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()

@@ -11,7 +11,11 @@
       "module": "engine.train",
       "args": [
         "--model_save",
-        "output/models/rgb-direct/",
+        "output/models/rgb-test/",
+        "--detection_dir",
+        "./data/segmentation_results",
+        "--dataset_dir",
+        "./data"
       ],
       "justMyCode": true
     },
@@ -22,17 +26,17 @@
       "module": "evaluation.evaluate",
       "args": [
         "--model_save",
-        "output/test22",
+        "output/test",
         "--resume",
         "1",
         "--resume_model",
-        "./output/models/rgb/model_149.pth",
+        "./output/models/rgb-direct/model_09.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
-        "/home/sungjin/HS-Pose/data/segmentation_results",
+        "./data/segmentation_results",
         "--dataset_dir",
-        "/home/sungjin/HS-Pose/data"
+        "./data"
       ],
       "justMyCode": true
     },
