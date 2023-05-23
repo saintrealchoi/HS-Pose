@@ -322,7 +322,7 @@ class PoseDataset(data.Dataset):
             num (int): target point number
         """
         total_pts_num = pcl.shape[0]
-        if total_pts_num < n_pts:
+        if total_pts_num < n_pts or total_pts_num == n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
             ids = np.arange(n_pts)
         elif total_pts_num > n_pts:
