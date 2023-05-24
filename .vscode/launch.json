@@ -37,6 +37,25 @@
       "justMyCode": true
     },
     {
+      "name": "viz",
+      "type": "python",
+      "request": "launch",
+      "module": "evaluation.evaluate_viz",
+      "args": [
+        "--model_save",
+        "output/test22",
+        "--dataset_dir",
+        "./data",
+        "--resume",
+        "1",
+        "--resume_model",
+        "./model_149.pth",
+        "--eval_seed",
+        "1677483078"
+      ],
+      "justMyCode": true
+    },
+    {
       "name": "None",
       "type": "python",
       "request": "launch",
