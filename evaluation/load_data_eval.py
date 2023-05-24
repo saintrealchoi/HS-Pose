@@ -203,6 +203,7 @@ class PoseDataset(data.Dataset):
         obj_ids_0base = []
         obj_valid_index = []
         point_clouds = []
+        pcl_index = []
 
         for j in range(num_instance):
             cat_id = detection_dict['pred_class_ids'][j]
@@ -251,7 +252,7 @@ class PoseDataset(data.Dataset):
             if np.sum(roi_m_d_valid) <= 1.0:
                 return None
             pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
-            pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
+            pcl_in, index = self._sample_points(pcl_in, FLAGS.random_points)
 
             # occupancy canonical
             # sym
@@ -263,6 +264,7 @@ class PoseDataset(data.Dataset):
             obj_ids.append(cat_id)
             obj_ids_0base.append(cat_id - 1)
             point_clouds.append(pcl_in)
+            pcl_index.append(index)
 
         if self.per_obj_id is not None:
             for key in ['pred_class_ids', 'pred_bboxes', 'pred_scores']:
@@ -283,6 +285,7 @@ class PoseDataset(data.Dataset):
         data_dict['sym_info'] = torch.as_tensor(sym_infos.astype(np.float32)).contiguous()
         data_dict['mean_shape'] = torch.as_tensor(mean_shapes, dtype=torch.float32).contiguous()
         data_dict['pcl_in'] = torch.as_tensor(point_clouds.astype(np.float32)).contiguous()
+        data_dict['pcl_index'] = torch.as_tensor(pcl_index)
         return data_dict, detection_dict, gts
 
     def _get_depth_normalize(self, roi_depth, roi_m_d_valid):
@@ -301,10 +304,11 @@ class PoseDataset(data.Dataset):
         total_pts_num = pcl.shape[0]
         if total_pts_num < n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
+            ids = np.arange(n_pts)
         elif total_pts_num > n_pts:
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
-        return pcl
+        return pcl,ids
 
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)

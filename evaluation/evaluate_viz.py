@@ -2,10 +2,12 @@ import os
 import torch
 import random
 from network.HSPose import HSPose 
+from network.fs_net_repo.gcn3d import get_neighbor_index,get_farthest_index
 from tools.geom_utils import generate_RT
 from config.config import *
 from absl import app
-
+from numpy import dot
+from numpy.linalg import norm
 FLAGS = flags.FLAGS
 from evaluation.load_data_eval import PoseDataset
 import numpy as np
@@ -26,6 +28,9 @@ def seed_init_fn(seed):
     return
 
 device = 'cuda'
+
+def cos_sim(A, B):
+  return dot(A, B)/(norm(A)*norm(B))
 
 def evaluate(argv):
     if FLAGS.eval_seed == -1:
@@ -62,13 +67,28 @@ def evaluate(argv):
 
         if FLAGS.resume:
             state_dict = torch.load(FLAGS.resume_model)['posenet_state_dict']
-            why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
-            rename_keys = ["posenet.face_recon.conv_0.STE_layer.weight", "posenet.face_recon.conv_1.STE_layer.weight", "posenet.face_recon.conv_2.STE_layer.weight", "posenet.face_recon.conv_3.STE_layer.weight", "posenet.face_recon.conv_4.STE_layer.weight"]
+            unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
+            
+            # why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
+            # rename_keys = ["posenet.face_recon.conv_0.STE_layer.weight", "posenet.face_recon.conv_1.STE_layer.weight", "posenet.face_recon.conv_2.STE_layer.weight", "posenet.face_recon.conv_3.STE_layer.weight", "posenet.face_recon.conv_4.STE_layer.weight"]
+            # for key in list(state_dict.keys()):
+            #     for i,rename_key in enumerate(why_keys):
+            #         if key.startswith(rename_key):
+            #             state_dict[rename_keys[i]] = state_dict.pop(why_keys[i])
+                     
+                ##########################################################
             for key in list(state_dict.keys()):
-                for i,rename_key in enumerate(why_keys):
-                    if key.startswith(rename_key):
-                        state_dict[rename_keys[i]] = state_dict.pop(why_keys[i])
-            network.load_state_dict(state_dict, strict=True) 
+                for net_to_delete in unnecessary_nets:
+                    if key.startswith(net_to_delete):
+                        state_dict.pop(key)
+                #########################################################
+                # Adapt weight name to match old code version. 
+                # Not necessary for weights trained using newest code. 
+                # Dose not change any function. 
+                #########################################################
+                if 'resconv' in key:
+                    state_dict[key.replace("resconv", "STE_layer")] = state_dict.pop(key)
+            network.load_state_dict(state_dict, strict=False) 
                 #########################################################
         else:
             raise NotImplementedError
@@ -96,11 +116,32 @@ def evaluate(argv):
                           sym=sym,
                         #   def_mask=data['roi_mask'].to(device)
                           )
-            SEE = 0
-            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
-            pcd.points = o3d.utility.Vector3dVector(output_dict['recon'][SEE].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
+                
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][5].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][1].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][2].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][3].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][4].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][5].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            SEE = 3
+            neighbor_index = get_neighbor_index(data['pcl_in'],4)
+            farthest_index = get_farthest_index(data['pcl_in'],4)
+            
+            one_feat = output_dict['feat'][SEE][0]
+            nearest_feat = output_dict['feat'][SEE][neighbor_index[SEE][0][0]] # #SEE instance's nearest point
+            farthest_feat = output_dict['feat'][SEE][farthest_index[SEE][0][0]] # #SEE instance's farthest point
+            nearest_sim = cos_sim(one_feat.detach().cpu().numpy(),nearest_feat.detach().cpu().numpy())
+            farthest_sim = cos_sim(one_feat.detach().cpu().numpy(),farthest_feat.detach().cpu().numpy())
+            
+            print("nearest  : ", nearest_sim)
+            print("farthest : ",farthest_sim)
+            
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()
             p_T = output_dict['Pred_T'].detach()

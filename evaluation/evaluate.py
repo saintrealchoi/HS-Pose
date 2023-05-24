@@ -83,7 +83,7 @@ def evaluate(argv):
                 #########################################################
                 if 'resconv' in key:
                     state_dict[key.replace("resconv", "STE_layer")] = state_dict.pop(key)
-            network.load_state_dict(state_dict, strict=True) 
+            network.load_state_dict(state_dict, strict=False) 
                 #########################################################
         else:
             raise NotImplementedError

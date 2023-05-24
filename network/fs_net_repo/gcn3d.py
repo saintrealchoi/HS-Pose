@@ -23,6 +23,16 @@ def get_neighbor_index(vertices: "(bs, vertice_num, 3)", neighbor_num: int):
     neighbor_index = neighbor_index[:, :, 1:]
     return neighbor_index
 
+def get_farthest_index(vertices: "(bs, vertice_num, 3)", neighbor_num: int):
+    """
+    Return: (bs, vertice_num, neighbor_num)
+    """
+    inner = torch.bmm(vertices, vertices.transpose(1, 2))  # (bs, v, v)
+    quadratic = torch.sum(vertices ** 2, dim=2)  # (bs, v)
+    distance = inner * (-2) + quadratic.unsqueeze(1) + quadratic.unsqueeze(2)
+    neighbor_index = torch.topk(distance, k=neighbor_num + 1, dim=-1, largest=True)[1]
+    neighbor_index = neighbor_index[:, :, 1:]
+    return neighbor_index
 
 def get_nearest_index(target: "(bs, v1, 3)", source: "(bs, v2, 3)"):
     """
@@ -164,7 +174,7 @@ class HS_layer(nn.Module):
         """
         bs, vertice_num, _ = vertices.size()
         support_direction_norm = F.normalize(self.directions, dim=0)
-        theta = receptive_fields_norm @ support_direction_norm  # (bs, vertice_num, neighbor_num, support_num * out_channel)
+        theta = receptive_fields_norm @ support_direction_norm  # (bs, vertice_num, neighbor_num, support_num * out_channel) # 1028,20,3 *  3,896
         theta = self.relu(theta)
         theta = theta.reshape(bs, vertice_num, neighbor_num, -1) # (bs, vertice_num, neighbor_num, support_num * out_channel)
 

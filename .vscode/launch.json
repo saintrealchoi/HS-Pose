@@ -11,7 +11,7 @@
       "module": "engine.train",
       "args": [
         "--dataset_dir",
-        "./data/NOCS",
+        "./data",
         "--model_save",
         "output/train",
       ],
@@ -25,6 +25,8 @@
       "args": [
         "--model_save",
         "output/test22",
+        "--dataset_dir",
+        "./data",
         "--resume",
         "1",
         "--resume_model",
