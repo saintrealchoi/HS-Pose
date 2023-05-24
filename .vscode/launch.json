@@ -41,6 +41,27 @@
       "justMyCode": true
     },
     {
+      "name": "Viz",
+      "type": "python",
+      "request": "launch",
+      "module": "evaluation.evaluate_viz",
+      "args": [
+        "--model_save",
+        "output/test",
+        "--resume",
+        "1",
+        "--resume_model",
+        "./model_119.pth",
+        "--eval_seed",
+        "1677483078",
+        "--detection_dir",
+        "./data/segmentation_results",
+        "--dataset_dir",
+        "./data"
+      ],
+      "justMyCode": true
+    },
+    {
       "name": "None",
       "type": "python",
       "request": "launch",
