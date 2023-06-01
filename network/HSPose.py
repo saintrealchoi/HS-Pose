@@ -80,7 +80,7 @@ class HSPose(nn.Module):
                 gt_s = gt_s_da
 
         recon, face_normal, face_dis, face_f, p_green_R, p_red_R, f_green_R, f_red_R, \
-        Pred_T, Pred_s = self.posenet(PC, obj_id)
+        Pred_T, Pred_s, feat = self.posenet(PC, obj_id)
 
         output_dict['mask'] = obj_mask
         output_dict['sketch'] = sketch
@@ -98,6 +98,7 @@ class HSPose(nn.Module):
         output_dict['gt_R'] = gt_R
         output_dict['gt_t'] = gt_t
         output_dict['gt_s'] = gt_s
+        output_dict['feat'] = feat
 
         if do_loss:
             p_recon = recon

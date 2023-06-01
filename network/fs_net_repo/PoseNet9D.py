@@ -51,7 +51,7 @@ class PoseNet9D(nn.Module):
         Pred_T = T + points.mean(dim=1)  # bs x 3
         Pred_s = s  # this s is not the object size, it is the residual
 
-        return recon, face_normal, face_dis, face_f, p_green_R, p_red_R, f_green_R, f_red_R, Pred_T, Pred_s
+        return recon, face_normal, face_dis, face_f, p_green_R, p_red_R, f_green_R, f_red_R, Pred_T, Pred_s, feat
 
 
 def main(argv):
