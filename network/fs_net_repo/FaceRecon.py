@@ -16,7 +16,8 @@ class FaceRecon(nn.Module):
         self.support_num = FLAGS.gcn_sup_num
 
         # 3D convolution for point cloud
-        self.conv_0 = gcn3d.HSlayer_surface(kernel_num=128, support_num=self.support_num)
+        # self.conv_0 = gcn3d.HSlayer_surface(kernel_num=128, support_num=self.support_num)
+        self.conv_0 = gcn3d.HS_layer(259, 128, support_num=self.support_num)
         self.conv_1 = gcn3d.HS_layer(128, 128, support_num=self.support_num)
         self.pool_1 = gcn3d.Pool_layer(pooling_rate=4, neighbor_num=4)
         self.conv_2 = gcn3d.HS_layer(128, 256, support_num=self.support_num)
@@ -24,6 +25,7 @@ class FaceRecon(nn.Module):
         self.pool_2 = gcn3d.Pool_layer(pooling_rate=4, neighbor_num=4)
         self.conv_4 = gcn3d.HS_layer(256, 512, support_num=self.support_num)
 
+        self.bn0 = nn.BatchNorm1d(128)
         self.bn1 = nn.BatchNorm1d(128)
         self.bn2 = nn.BatchNorm1d(256)
         self.bn3 = nn.BatchNorm1d(256)
@@ -31,7 +33,7 @@ class FaceRecon(nn.Module):
         self.recon_num = 3
         self.face_recon_num = FLAGS.face_recon_c
 
-        dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c, 259]) # TODO:
+        dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c]) # TODO:
         # 16: total 6 categories, 256 is global feature
 
         if FLAGS.train:
@@ -87,7 +89,8 @@ class FaceRecon(nn.Module):
         # bs x verticenum x 6
 
         # ss = time.time()
-        fm_0 = F.relu(self.conv_0(vertices, self.neighbor_num), inplace=True)
+        # fm_0 = F.relu(self.conv_0(vertices, self.neighbor_num), inplace=True)
+        fm_0 = F.relu(self.bn0(self.conv_0(vertices, bgr, self.neighbor_num).transpose(1, 2)).transpose(1,2 ), inplace=True)
         fm_1 = F.relu(self.bn1(self.conv_1(vertices, fm_0, self.neighbor_num).transpose(1, 2)).transpose(1, 2), inplace=True)
         v_pool_1, fm_pool_1 = self.pool_1(vertices, fm_1)
         fm_2 = F.relu(self.bn2(self.conv_2(v_pool_1, fm_pool_1, 
@@ -105,7 +108,7 @@ class FaceRecon(nn.Module):
         fm_4 = gcn3d.indexing_neighbor_new(fm_4, nearest_pool_2).squeeze(2)
         one_hot = one_hot.unsqueeze(1).repeat(1, vertice_num, 1)  # (bs, vertice_num, cat_one_hot)
 
-        feat = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4, one_hot,bgr], dim=2)
+        feat = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4, one_hot], dim=2)
         '''
         feat_face = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4], dim=2)
         feat_face = torch.mean(feat_face, dim=1, keepdim=True)  # bs x 1 x channel
