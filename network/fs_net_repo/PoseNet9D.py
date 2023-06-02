@@ -22,9 +22,9 @@ class PoseNet9D(nn.Module):
 
     def forward(self, points, obj_id):
         bs, p_num = points.shape[0], points.shape[1]
-        bgr = points[:,:,3:]
+        gray = points[:,:,3:]
         points = points[:,:,:3]
-        recon, face, feat = self.face_recon(points - points.mean(dim=1, keepdim=True), obj_id, bgr)
+        recon, face, feat = self.face_recon(points - points.mean(dim=1, keepdim=True), obj_id, gray)
 
         if FLAGS.train:
             recon = recon + points.mean(dim=1, keepdim=True)

@@ -67,6 +67,18 @@ def get_neighbor_direction_norm(vertices: "(bs, vertice_num, 3)", neighbor_index
     else:
         return neighbor_direction_norm.float()
 
+def get_neighbor_direction_gray_norm(vertices: "(bs, vertice_num, 4)", neighbor_index: "(bs, vertice_num, neighbor_num)", return_unnormed = False):
+    """
+    Return: (bs, vertice_num, neighobr_num, 3)
+    """
+    neighbors = indexing_neighbor_new(vertices, neighbor_index)  # (bs, v, n, 3)
+    neighbor_direction = neighbors - vertices.unsqueeze(2)
+    neighbor_direction_norm = F.normalize(neighbor_direction, dim=-1)
+    if return_unnormed:
+        return neighbor_direction_norm.float(), neighbor_direction
+    else:
+        return neighbor_direction_norm.float()
+
 class HSlayer_surface(nn.Module):
     """Extract structure feafure from surface, independent from vertice coordinates"""
 
@@ -76,8 +88,8 @@ class HSlayer_surface(nn.Module):
         self.kernel_num = kernel_num
         self.support_num = support_num
         self.relu = nn.ReLU(inplace=True)
-        self.directions = nn.Parameter(torch.FloatTensor(3, support_num * kernel_num))
-        self.STE_layer = nn.Conv1d(3, kernel_num, kernel_size=1, bias=False)
+        self.directions = nn.Parameter(torch.FloatTensor(4, support_num * kernel_num))
+        self.STE_layer = nn.Conv1d(4, kernel_num, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(2*kernel_num, kernel_num, kernel_size=1, bias=False)
         self.initialize()
 
@@ -86,13 +98,13 @@ class HSlayer_surface(nn.Module):
         self.directions.data.uniform_(-stdv, stdv)
 
     def forward(self,
-                vertices: "(bs, vertice_num, 3)",
+                vertices: "(bs, vertice_num, 4)",
                 neighbor_num: 'int'):
         """
         Return vertices with local feature: (bs, vertice_num, kernel_num)
         """
         f_STE = self.STE_layer(vertices.transpose(-1,-2)).transpose(-1,-2).contiguous()
-        receptive_fields_norm, _ = get_receptive_fields(neighbor_num, vertices, mode='RF-P')
+        receptive_fields_norm, _ = get_receptive_fields_gray(neighbor_num, vertices, mode='RF-F', feature_map=vertices)
         feature = self.graph_conv(receptive_fields_norm, vertices, neighbor_num)
         feature = self.ORL_forward(feature, vertices, neighbor_num)
 
@@ -215,6 +227,28 @@ def get_receptive_fields(neighbor_num: "int",
         feat = vertices
     neighbor_index = get_neighbor_index(feat, neighbor_num)
     neighbor_direction_norm = get_neighbor_direction_norm(vertices, neighbor_index)
+    return neighbor_direction_norm, neighbor_index
+
+def get_receptive_fields_gray(neighbor_num: "int", 
+                         vertices: "(bs, vertice_num, 4)", 
+                         feature_map: "(bs, vertice_num, in_channel)" = None, 
+                         mode: 'string' ='RF-F'):
+    """ Form receptive fields amd norm the direction vectors according to the mode.
+    
+    Args:
+        neighbor_num (int): neighbor number.
+        vertices (tensor): The 3D point cloud for forming receptive fields 
+        feature_map (tensor, optional): The features for finding neighbors and should be provided if 'RF-F' is used. Defaults to None. 
+        mode (str, optional): The metrics for finding the neighbors. Should only use 'RF-F' or 'RF-P'. 'RF-F' means forming the receptive fields using feature-distance, and 'RF-P' means using point-distance. Defaults to 'RF-F'.
+    """
+    assert mode in ['RF-F', 'RF-P']
+    if mode == 'RF-F':
+        assert feature_map is not None, "The feature_map should be provided if 'RF-F' is used"
+        feat = feature_map
+    else:
+        feat = vertices
+    neighbor_index = get_neighbor_index(feat, neighbor_num)
+    neighbor_direction_norm = get_neighbor_direction_gray_norm(vertices, neighbor_index)
     return neighbor_direction_norm, neighbor_index
 
 def get_ORL_global(feature:'(bs, vertice_num, in_channel)', vertices: '(bs, vertice_num, 3)', 
