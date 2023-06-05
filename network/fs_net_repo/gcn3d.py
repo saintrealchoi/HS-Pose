@@ -119,13 +119,19 @@ class HSlayer_surface(nn.Module):
         """
         bs, vertice_num, _ = vertices.size()
         support_direction_norm = F.normalize(self.directions, dim=0)  # (3, s * k)
-        theta = receptive_fields_norm @ support_direction_norm  # (bs, vertice_num, neighbor_num, s*k)
-
+        theta = receptive_fields_norm[:,:,:,:3] @ support_direction_norm[:3,:]  # (bs, vertice_num, neighbor_num, s*k)
+        gray_theta = torch.unsqueeze(receptive_fields_norm[:,:,:,3],dim=-1) @ torch.unsqueeze(support_direction_norm[3,:],dim=0)
         theta = self.relu(theta)
+        gray_theta = self.relu(gray_theta)
         theta = theta.reshape(bs, vertice_num, neighbor_num, self.support_num, self.kernel_num)
+        gray_theta = gray_theta.reshape(bs, vertice_num, neighbor_num, self.support_num, self.kernel_num)
         theta = torch.max(theta, dim=2)[0]  # (bs, vertice_num, support_num, kernel_num)
+        gray_theta = torch.max(gray_theta, dim=2)[0]  # (bs, vertice_num, support_num, kernel_num)
+        
         feature = torch.mean(theta, dim=2)  # (bs, vertice_num, kernel_num)
-        return feature
+        gray_feature = torch.mean(gray_theta,dim=2)
+        
+        return feature + gray_feature
 
     def ORL_forward(self, feature, vertices, neighbor_num):
         f_global = get_ORL_global(feature, vertices, neighbor_num) 

@@ -119,27 +119,27 @@ def evaluate(argv):
                           sample_idx = data['sample_idx'].to(device)
                           )
                 
-            # SEE = 1
-            with open('output/results/rgb/output_{}.pickle'.format(i),'wb') as f:
-                pickle.dump(output_dict,f,pickle.HIGHEST_PROTOCOL)
-            with open('output/results/rgb/data_{}.pickle'.format(i),'wb') as fs:
-                pickle.dump(data,fs,pickle.HIGHEST_PROTOCOL)
-            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy()) # Origin PCL
-            # # pcd.colors = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,3:].detach().cpu().numpy()[:,::-1]) # Origin PCL
-            # o3d.visualization.draw_geometries([pcd])
-            # pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][SEE][:,:3].detach().cpu().numpy()) # Origin PCL
-            # o3d.visualization.draw_geometries([pcd])
-            # neighbor_index = get_neighbor_index(data['pcl_in'],4)
-            # farthest_index = get_farthest_index(data['pcl_in'],4)
+            SEE = 1
+            # with open('output/results/rgb/output_{}.pickle'.format(i),'wb') as f:
+            #     pickle.dump(output_dict,f,pickle.HIGHEST_PROTOCOL)
+            # with open('output/results/rgb/data_{}.pickle'.format(i),'wb') as fs:
+            #     pickle.dump(data,fs,pickle.HIGHEST_PROTOCOL)
+            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy()) # Origin PCL
+            # pcd.colors = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,3:].detach().cpu().numpy()[:,::-1]) # Origin PCL
+            o3d.visualization.draw_geometries([pcd])
+            pcd.points = o3d.utility.Vector3dVector(output_dict['PC'][SEE][:,:3].detach().cpu().numpy()) # Origin PCL
+            o3d.visualization.draw_geometries([pcd])
+            neighbor_index = get_neighbor_index(data['pcl_in'],4)
+            farthest_index = get_farthest_index(data['pcl_in'],4)
             
-            # one_feat = output_dict['feat'][SEE][0]
-            # nearest_feat = output_dict['feat'][SEE][neighbor_index[SEE][0][0]] # #SEE instance's nearest point
-            # farthest_feat = output_dict['feat'][SEE][farthest_index[SEE][0][0]] # #SEE instance's farthest point
-            # nearest_sim = cos_sim(one_feat.detach().cpu().numpy(),nearest_feat.detach().cpu().numpy())
-            # farthest_sim = cos_sim(one_feat.detach().cpu().numpy(),farthest_feat.detach().cpu().numpy())
+            one_feat = output_dict['feat'][SEE][0]
+            nearest_feat = output_dict['feat'][SEE][neighbor_index[SEE][0][0]] # #SEE instance's nearest point
+            farthest_feat = output_dict['feat'][SEE][farthest_index[SEE][0][0]] # #SEE instance's farthest point
+            nearest_sim = cos_sim(one_feat.detach().cpu().numpy(),nearest_feat.detach().cpu().numpy())
+            farthest_sim = cos_sim(one_feat.detach().cpu().numpy(),farthest_feat.detach().cpu().numpy())
             
-            # print("nearest  : ", nearest_sim)
-            # print("farthest : ",farthest_sim)
+            print("nearest  : ", nearest_sim)
+            print("farthest : ",farthest_sim)
             
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()
@@ -162,7 +162,7 @@ def evaluate(argv):
                 assert NotImplementedError
             pred_results.append(detection_dict)
             torch.cuda.empty_cache()
-            f.close()
+            # f.close()
             fs.close()
         with open(pred_result_save_path, 'wb') as file:
             pickle.dump(pred_results, file)

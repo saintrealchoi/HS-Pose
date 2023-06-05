@@ -51,7 +51,7 @@
         "--resume",
         "1",
         "--resume_model",
-        "./model_119.pth",
+        "/home/choisj/Downloads/gray_model_149.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
