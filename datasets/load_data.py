@@ -16,7 +16,6 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 from tools.eval_utils import load_depth, get_bbox
 from tools.dataset_utils import *
-import torch.nn.functional as F
 
 
 class PoseDataset(data.Dataset):
@@ -280,9 +279,8 @@ class PoseDataset(data.Dataset):
 
         # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
         pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def)
-        pcl_in = torch.as_tensor(pcl_in.astype(np.float32)).contiguous()
-        pcl_in[:,:3] = pcl_in[:,:3] / 1000.0
-        pcl_in[:,3:] = F.normalize(pcl_in[:,3:],dim=1)
+        pcl_in = pcl_in / 1000.0
+        pcl_in[:,3:] = pcl_in[:,3:]* 5.0
         if len(pcl_in) < 50:
             return self.__getitem__((index + 1) % self.__len__())
         pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
@@ -292,7 +290,7 @@ class PoseDataset(data.Dataset):
         bb_aug, rt_aug_t, rt_aug_R = self.generate_aug_parameters()
 
         data_dict = {}
-        data_dict['pcl_in'] = torch.as_tensor(pcl_in)
+        data_dict['pcl_in'] = torch.as_tensor(pcl_in.astype(np.float32)).contiguous()
         data_dict['rgb_in'] = torch.as_tensor(roi_rgb.astype(np.float32)).contiguous()
         data_dict['depth_valid'] = torch.as_tensor(valid.astype(np.bool8)).contiguous()
         data_dict['sample_idx'] = torch.as_tensor(indices).contiguous()

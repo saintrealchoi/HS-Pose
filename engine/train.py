@@ -97,9 +97,11 @@ def train(argv):
             recon_loss = loss_dict['recon_loss']
             geo_loss = loss_dict['geo_loss']
             prop_loss = loss_dict['prop_loss']
+            # seg_loss = loss_dict['seg_loss']
 
             total_loss = sum(fsnet_loss.values()) + sum(recon_loss.values()) \
                             + sum(geo_loss.values()) + sum(prop_loss.values()) \
+                            # + sum(seg_loss.values())
 
             if math.isnan(total_loss):
                 print('Found nan in total loss')
