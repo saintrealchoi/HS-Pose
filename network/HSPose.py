@@ -123,7 +123,7 @@ class HSPose(nn.Module):
             gt_fsnet_list = {
                 'Rot1': gt_green_v,
                 'Rot2': gt_red_v,
-                'Recon': PC[:,:,:3],
+                'Recon': PC[:,:,:6],
                 'Tran': gt_t,
                 'Size': gt_s,
             }
@@ -142,7 +142,7 @@ class HSPose(nn.Module):
             }
 
             gt_prop_list = {
-                'Points': PC[:,:,:3],
+                'Points': PC[:,:,:6],
                 'R': gt_R,
                 'T': gt_t,
                 'Mean_shape': mean_shape,

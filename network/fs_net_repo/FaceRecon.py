@@ -28,7 +28,7 @@ class FaceRecon(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.bn3 = nn.BatchNorm1d(256)
 
-        self.recon_num = 3
+        self.recon_num = 6
         self.face_recon_num = FLAGS.face_recon_c
 
         dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c, 259]) # TODO:
@@ -105,7 +105,7 @@ class FaceRecon(nn.Module):
         fm_4 = gcn3d.indexing_neighbor_new(fm_4, nearest_pool_2).squeeze(2)
         one_hot = one_hot.unsqueeze(1).repeat(1, vertice_num, 1)  # (bs, vertice_num, cat_one_hot)
 
-        feat = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4, one_hot,bgr], dim=2)
+        feat = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4, one_hot, bgr], dim=2)
         '''
         feat_face = torch.cat([fm_0, fm_1, fm_2, fm_3, fm_4], dim=2)
         feat_face = torch.mean(feat_face, dim=1, keepdim=True)  # bs x 1 x channel

@@ -27,7 +27,7 @@ class PoseNet9D(nn.Module):
         recon, face, feat = self.face_recon(points - points.mean(dim=1, keepdim=True), obj_id, bgr)
 
         if FLAGS.train:
-            recon = recon + points.mean(dim=1, keepdim=True)
+            recon[:,:,:3] = recon[:,:,:3] + points.mean(dim=1, keepdim=True)
             # handle face
             face_normal = face[:, :, :18].view(bs, p_num, 6, 3)  # normal
             face_normal = face_normal / torch.norm(face_normal, dim=-1, keepdim=True)  # bs x nunm x 6 x 3

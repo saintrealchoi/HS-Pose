@@ -50,8 +50,8 @@ class prop_rot_loss(nn.Module):
             # for idx in range(len(t_list)):
             #     torch.save(t_list[idx], f"{my_folder}/prop_sym_tensor{idx}.pt")
             # exit()
-            Prop_sym_recon, Prop_sym_rt = self.prop_sym_matching_loss(gt_list['Points'],
-                                                                      pred_list['Recon'],
+            Prop_sym_recon, Prop_sym_rt = self.prop_sym_matching_loss(gt_list['Points'][:,:,:3],
+                                                                      pred_list['Recon'][:,:,:3],
                                                                       pred_list['Rot1'],
                                                                       pred_list['Rot2'],
                                                                       pred_list['Tran'],
@@ -171,8 +171,9 @@ class prop_rot_loss(nn.Module):
         # reproject the points back to objct coordinate
         # only for non-symmetric objects
         # handle c1, c2
-        points_re = torch.bmm(g_R.permute(0, 2, 1), (points - g_t.view(bs, 1, -1)).permute(0, 2, 1))
+        points_re = torch.bmm(g_R.permute(0, 2, 1), (points[:,:,:3] - g_t.view(bs, 1, -1)).permute(0, 2, 1))
         points_re = points_re.permute(0, 2, 1)
+        points_re = torch.concat((points_re,points[:,:,3:]),dim=2)
 
         near_zeros = torch.full(f_g_vec.shape, 1e-5, device=f_g_vec.device)
         new_y_sym, new_x_sym = get_vertical_rot_vec_in_batch(f_g_vec, near_zeros, p_g_vec, g_R[...,0])
@@ -181,7 +182,8 @@ class prop_rot_loss(nn.Module):
         new_y = torch.where(sym_flag, new_y_sym, new_y)
         new_x = torch.where(sym_flag, new_x_sym, new_x)
         p_R = get_rot_mat_y_first(new_y, new_x)
-        points_re_n = torch.matmul(p_R.transpose(-2,-1), (points-p_t.unsqueeze(-2)).transpose(-2,-1)).transpose(-2,-1)  # bs x 1024, 3
+        points_re_n = torch.matmul(p_R.transpose(-2,-1), (points[:,:,:3]-p_t.unsqueeze(-2)).transpose(-2,-1)).transpose(-2,-1)  # bs x 1024, 3
+        points_re_n = torch.concat((points_re_n,points[:,:,3:]),dim=2)
         res = self.loss_func(points_re_n, points_re)
         return res
 
