@@ -68,6 +68,27 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "justMyCode": false
-    }
+    },
+    {
+      "name": "gt_Test",
+      "type": "python",
+      "request": "launch",
+      "module": "evaluation.evaluate_gt",
+      "args": [
+        "--model_save",
+        "output/models/rgb-3drecon/model_29_gt",
+        "--resume",
+        "1",
+        "--resume_model",
+        "./output/models/rgb-3drecon/model_29.pth",
+        "--eval_seed",
+        "1677483078",
+        "--detection_dir",
+        "./data/segmentation_results",
+        "--dataset_dir",
+        "./data"
+      ],
+      "justMyCode": true
+    },
   ]
 }
