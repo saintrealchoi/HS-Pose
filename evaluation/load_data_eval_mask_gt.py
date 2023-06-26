@@ -12,8 +12,6 @@ from tools.eval_utils import load_depth, get_bbox
 from tools.dataset_utils import *
 from evaluation.eval_utils_v1 import get_3d_bbox, transform_coordinates_3d, compute_3d_iou_new
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 class PoseDataset(data.Dataset):
     def __init__(self, source=None, mode='test',
                  n_pts=1024, img_size=256):
@@ -247,23 +245,13 @@ class PoseDataset(data.Dataset):
             scale = max(y2 - y1, x2 - x1)
             scale = min(scale, max(im_H, im_W)) * 1.0
 
-            # fig, ax = plt.subplots()
-            # ax.imshow(mask_tmp)
-            # rect = patches.Rectangle((x1,y1),x2-x1,y2-y1,linewidth=1,edgecolor='r', facecolor='none')
-            # ax.add_patch(rect)
-            # plt.show()
-            # bh = y2 - y1
-            # bw = x2 - x1
-            # scale_ratio = 1 + FLAGS.DZI_SCALE_RATIO * (2 * np.random.random_sample() - 1)  # [1-0.25, 1+0.25]
-            # shift_ratio = FLAGS.DZI_SHIFT_RATIO * (2 * np.random.random_sample(2) - 1)  # [-0.25, 0.25]
-            # bbox_center = np.array([cx + bw * shift_ratio[0], cy + bh * shift_ratio[1]])  # (h/2, w/2)
-            # scale = max(y2 - y1, x2 - x1) * scale_ratio * FLAGS.DZI_PAD_SCALE
-
             # roi_coord_2d ----------------------------------------------------
             roi_coord_2d = crop_resize_by_warp_affine(
                 coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             ).transpose(2, 0, 1)
             mask_target = mask_tmp.copy().astype(np.float)
+            mask_target[mask_tmp != cat_id] = 0.0
+            mask_target[mask_tmp == cat_id] = 1.0
             # depth[mask_target == 0.0] = 0.0
             roi_rgb = crop_resize_by_warp_affine(
                 rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST

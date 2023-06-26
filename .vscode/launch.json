@@ -80,11 +80,11 @@
       "module": "evaluation.evaluate_gt",
       "args": [
         "--model_save",
-        "output/test/gt/gt/",
+        "output/models/rgb-3drecon/model_29_gt",
         "--resume",
         "1",
         "--resume_model",
-        "./rgb_model_119.pth",
+        "./output/models/rgb-3drecon/model_29.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
