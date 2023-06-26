@@ -93,6 +93,11 @@ def train(argv):
                           nocs_scale=data['nocs_scale'].to(device),
                           do_loss=True)
             # print('net_process', time.time()-begin)
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][0][:,:3].detach().cpu().numpy()) # Origin PCL
+            pcd.points = o3d.utility.Vector3dVector(output_dict['recon'][0][:,:3].detach().cpu().numpy()) # Origin PCL
+            o3d.visualization.draw_geometries([pcd])
+            
             fsnet_loss = loss_dict['fsnet_loss']
             recon_loss = loss_dict['recon_loss']
             geo_loss = loss_dict['geo_loss']

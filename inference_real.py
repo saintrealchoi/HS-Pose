@@ -17,7 +17,7 @@ from network.HSPose import HSPose
 import torchvision.transforms as transforms
 from utils import camera
 from lib.utils import draw_detections,align_rotation, transform_coordinates_3d,calculate_2d_projections,get_3d_bbox
-from utils.viz_utils import save_projected_points,line_set_mesh,draw_bboxes,draw_axes,draw_bboxes_origin,draw_2d_bboxes
+from utils.viz_utils import save_projected_points,line_set_mesh,draw_bboxes,draw_axes,draw_bboxes_origin,draw_2d_bboxes,draw_segmentation_results
 from utils.transform_utils import get_gt_pointclouds,project
 from lib.utils import compute_RT_overlaps,compute_sRT_errors,compute_RT_errors
 from tools.eval_utils import load_depth, get_bbox
@@ -77,11 +77,12 @@ def inference(
     data_path = open(os.path.join(data_dir, 'Real', 'test_list.txt')).read().splitlines()
     
     _CAMERA = camera.NOCS_Real()
-    load_path = os.path.join('/home/choisj/git/sj/HS-Pose/output/pseudo/eval_result_model/pred_result.pkl')
+    load_path = os.path.join('/home/choisj/git/sj/HS-Pose/output/test/gt/gt/eval_result_rgb_model_119/pred_result.pkl')
     with open(load_path, 'rb') as f:
         results = cPickle.load(f)
     for i, img_path in enumerate(data_path):
-        
+        result = results[i]
+        img_path = '/'.join(result['image_path'].split('/')[-3:])
         img_full_path = os.path.join(data_dir, 'Real', img_path)
         color_path = img_full_path + '_color.png' 
         if not os.path.exists(color_path):
@@ -95,7 +96,6 @@ def inference(
         with open(mrcnn_path, 'rb') as f:
             mrcnn_result = cPickle.load(f)
             
-        result = results[i]
 
         depth_full_path = os.path.join(data_dir, 'Real', img_path)
         depth_path = depth_full_path + '_depth.png'
@@ -104,13 +104,14 @@ def inference(
         depth_map_gray = (depth_norm * 255).astype(np.uint8)
         depth_map_magma = cm.magma(depth_map_gray)
         depth_map_magma_uint8 = (depth_map_magma * 255).astype(np.uint8)
-        cv2.imwrite(str(output_path / f'{i}_depth.png'), depth_map_magma_uint8)
+        # cv2.imwrite(str(output_path / f'{i}_depth.png'), depth_map_magma_uint8)
         
-        img_vis_2d = draw_2d_bboxes(np.copy(img_vis),mrcnn_result)
-        cv2.imwrite(
-            str(output_path / f'{i}_image.png'),
-            np.copy(np.copy(img_vis_2d))
-        )
+        # img_vis_2d = draw_2d_bboxes(np.copy(img_vis),mrcnn_result)
+        img_vis_2d = draw_segmentation_results(np.copy(img_vis),mrcnn_result)
+        # cv2.imwrite(
+        #     str(output_path / f'{i}_image.png'),
+        #     np.copy(np.copy(img_vis_2d))
+        # )
         
         write_pcd = False
         rotated_pcds = []
@@ -125,45 +126,12 @@ def inference(
         T_errors = []
         
         for j in range(len(result['pred_RTs'])):
-        # for j in range(num_insts):
-            
-        #     shape_out = result['pred_shape'][j]
-            
-            # rotated_pc, rotated_box, pred_size = get_gt_pointclouds(result['pred_RTs'][j],shape_out,camera_model=_CAMERA)
-        #     pcd = o3d.geometry.PointCloud()
-        #     pcd.points = o3d.utility.Vector3dVector(rotated_pc)
-        #     filename_rotated = str(output_path) + '/pcd_rotated'+str(i)+str(j)+'.ply'
-        #     if write_pcd:
-        #         o3d.io.write_point_cloud(filename_rotated, pcd)
-        #     else:
-        #         rotated_pcds.append(pcd)
-
-        #     mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=[0, 0, 0])
-        #     T = result['pred_RTs'][j]
-        #     mesh_frame = mesh_frame.transform(T)
-        #     rotated_pcds.append(mesh_frame)
-        #     cylinder_segments = line_set_mesh(rotated_box)
-        #     for k in range(len(cylinder_segments)):
-        #         rotated_pcds.append(cylinder_segments[k])
-
-                
-        #     points_mesh = camera.convert_points_to_homopoints(rotated_pc.T)
-        #     points_2d_mesh = project(_CAMERA.K_matrix, points_mesh)
-        #     points_2d_mesh = points_2d_mesh.T
-        #     points_2d.append(points_2d_mesh)
-        #     #2D output
-            # points_obb = camera.convert_points_to_homopoints(np.array(rotated_box).T)
-            # points_2d_obb = project(_CAMERA.K_matrix, points_obb)
-            # points_2d_obb = points_2d_obb.T
-            # box_obb.append(points_2d_obb)
             xyz_axis = 0.3*np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], [1, 0, 0]]).transpose()
             sRT = result['pred_RTs'][j]
             transformed_axes = transform_coordinates_3d(xyz_axis, sRT)
             projected_axes = calculate_2d_projections(transformed_axes, _CAMERA.K_matrix[:3,:3])
-
             
             axes.append(projected_axes)
-        #     #RT output
             
             max_T = 10000
             candidate_idx = -1
@@ -173,7 +141,6 @@ def inference(
                     max_T = temp[1]
                     candidate_idx = idx
                     
-
             results_rt = compute_RT_errors(result['gt_RTs'][candidate_idx], sRT, result['pred_class_ids'][j], 1, synset_names)
             
             R_errors.append(float(results_rt[0]))
@@ -226,12 +193,6 @@ def inference(
                 projected_bbox = calculate_2d_projections(transformed_bbox_3d, _CAMERA.K_matrix[:3,:3] )
                 im = draw_bboxes_origin(im, projected_bbox,(0, 0, 255))
                 
-            # Draw GT Axes
-            # for k in range(len(colors_box)):
-            #     for points_2d, axis in zip(result['gt_bboxes'], gt_axes_li):
-            #         points_2d = np.array(points_2d)
-            #         im = draw_axes(im, points_2d, axis, colors_box[k])
-                    
             # Draw GT BBoxes 
             for k in range(result['gt_RTs'].shape[0]):
                 if result['gt_class_ids'][k] in [1, 2, 4]:
@@ -243,17 +204,17 @@ def inference(
                 projected_bbox = calculate_2d_projections(transformed_bbox_3d, _CAMERA.K_matrix[:3,:3])
                 im = draw_bboxes_origin(im, projected_bbox, (0, 255, 0))
             box_plot_name = str(output_path)+'/box3d'+str(i).zfill(3)+'.png'
-            cv2.imwrite(
-                box_plot_name,
-                np.copy(im)
-            )
-            cv2.imwrite(str(output_path / f'concat_{i}.png'),np.concatenate((im,depth_map_magma_uint8[:,:,:3],img_vis_2d),axis=1))
+            # cv2.imwrite(
+            #     box_plot_name,
+            #     np.copy(im)
+            # )
+            cv2.imwrite(str(output_path / f'concat_{i}.png'),np.concatenate((im,depth_map_magma_uint8[:,:,:3],np.repeat(np.expand_dims(img_vis_2d,axis=-1),3,axis=-1)),axis=1))
             
         print("done with image: ", i )
 
 if __name__ == '__main__':
   print(opt)
-  result_name = 'inference'
+  result_name = 'inference_gt_test'
   path = 'data/'+result_name
   output_path = pathlib.Path(path) / opt.model[-12:-4]
   output_path.mkdir(parents=True, exist_ok=True)

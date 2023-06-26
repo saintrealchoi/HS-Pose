@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import sys
 sys.path.append("/home/choisj/git/sj/object-deformnet/utils")
-import transform
+import utils.transform as transform
 
 CLIPPING_PLANE_NEAR = 0.4
 SCALE_FACTOR = 4

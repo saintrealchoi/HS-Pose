@@ -124,6 +124,8 @@ def evaluate(argv):
                 pickle.dump(output_dict,f,pickle.HIGHEST_PROTOCOL)
             with open('output/results/rgb/data_{}.pickle'.format(i),'wb') as fs:
                 pickle.dump(data,fs,pickle.HIGHEST_PROTOCOL)
+            with open('output/results/rgb/gts_{}.pickle'.format(i),'wb') as fs:
+                pickle.dump(gts,fs,pickle.HIGHEST_PROTOCOL)
             # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy()) # Origin PCL
             # # pcd.colors = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,3:].detach().cpu().numpy()[:,::-1]) # Origin PCL
             # o3d.visualization.draw_geometries([pcd])

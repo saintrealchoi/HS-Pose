@@ -118,8 +118,8 @@ def rot_trans_cosine(name):
         f2.close()
     return rot_li,trans_li,cosine_sim_li
 
-rot_li,trans_li,cosine_sim_li = rot_trans_cosine('origin')
-rgb_rot_li,rgb_trans_li,rgb_cosine_sim_li = rot_trans_cosine('rgb')
+# rot_li,trans_li,cosine_sim_li = rot_trans_cosine('origin')
+rot_li,rgb_trans_li,cosine_sim_li = rot_trans_cosine('rgb')
 plt.scatter(rot_li,cosine_sim_li)
 data_matrix = np.vstack((rot_li,cosine_sim_li))
 cov_mat = np.cov(data_matrix)

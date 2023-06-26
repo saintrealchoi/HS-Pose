@@ -1,7 +1,7 @@
 nohup*
 .vscode/launch.json
 test/
-data/
+data
 output/
 eval_result/
 HS-Pose-env/
@@ -37,3 +37,5 @@ share/python-wheels/
 MANIFEST
 
 *.out
+runs/
+mmdetection

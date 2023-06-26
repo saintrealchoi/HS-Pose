@@ -7,7 +7,7 @@ from config.config import *
 from absl import app
 
 FLAGS = flags.FLAGS
-from evaluation.load_data_eval import PoseDataset
+from evaluation.load_data_eval_mask_gt import PoseDataset
 import numpy as np
 import time
 
@@ -18,6 +18,7 @@ from evaluation.eval_utils_v1 import compute_degree_cm_mAP
 from tqdm import tqdm
 
 import open3d as o3d
+
 from evaluation.eval_utils import compute_mAP
 
 def seed_init_fn(seed):

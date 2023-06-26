@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import camera
 import matplotlib.patches as patches
 import cv2
 import random
@@ -330,6 +329,14 @@ def draw_2d_bboxes(img, mrcnn):
         cv2.rectangle(img,(mrcnn['gt_bboxes'][i][1],mrcnn['gt_bboxes'][i][0]),(mrcnn['gt_bboxes'][i][3],mrcnn['gt_bboxes'][i][2])\
             ,colormap[mrcnn['gt_class_ids'][i]-1],2)
     return img
+
+def draw_segmentation_results(img, mrcnn):
+    mask = np.zeros((img.shape[0],img.shape[1]),dtype=np.uint8)
+    for i in range(len(mrcnn['pred_class_ids'])):
+        mask = np.logical_or(mask,mrcnn['pred_masks'][:,:,i])
+    mask = mask.astype(np.uint8)
+    mask[mask==1] = 255
+    return mask
 
 def draw_bboxes_origin(img, img_pts, color):
     img_pts = np.int32(img_pts).reshape(-1, 2)

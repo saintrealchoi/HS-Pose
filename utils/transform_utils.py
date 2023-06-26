@@ -2,7 +2,7 @@ import math
 import numpy as np
 import sys
 sys.path.append("/home/choisj/git/sj/object-deformnet/utils")
-import camera
+import utils.camera
 import torch
 
 def align_rotation(R):

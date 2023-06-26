@@ -6,47 +6,14 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 # import open3d as o3d
+from sklearn.metrics.pairwise import cosine_similarity
 
 def cos_sim(A, B):
   return dot(A, B)/(norm(A)*norm(B))
 
-def calc_cos_sim(origin,target1,target2):
-    min = 100000
-    # origin = [-0.322, -0.115, 0.972]
-    # target1 = [-0.182, -0.162, 1.048]
-    # target2 = [-0.070, 0.024, 0.957]
-    origin_index = -1
-    target_index1 = -1
-    target_index2 = -1
-    for i, point in enumerate(x):
-        cal = np.sum((point - origin)**2)
-        if min > cal:
-            origin_index = i
-            min = cal
-
-    min = 100000
-    for i, point in enumerate(x):
-        cal = np.sum((point - target1)**2)
-        if min > cal:
-            target_index1 = i
-            min = cal
-            
-    min = 100000
-    for i, point in enumerate(x):
-        cal = np.sum((point - target2)**2)
-        if min > cal:
-            target_index2 = i
-            min = cal
-          
-    origin_feat = output_dict['feat'][SEE][origin_index].detach().cpu().numpy()
-    target1_feat = output_dict['feat'][SEE][target_index1].detach().cpu().numpy()
-    target2_feat = output_dict['feat'][SEE][target_index2].detach().cpu().numpy()
-
-    first = cos_sim(origin_feat,target1_feat)
-    second = cos_sim(origin_feat,target2_feat)
-
-    return first, second
-  
+def self_attention(origin_feat):
+    return np.mean(cosine_similarity(origin_feat,origin_feat),axis=1)
+      
 def calc_all_cos_sim(origin):
     # origin = [-0.322, -0.115, 0.972]
     # target1 = [-0.182, -0.162, 1.048]
@@ -81,8 +48,8 @@ def origin_file_open(idx):
     return data, output_dict
     
 if __name__ == '__main__':
-    data, output_dict = rgb_file_open(174)
-    # data, output_dict = origin_file_open(179)
+    data, output_dict = rgb_file_open(627)
+    # data, output_dict = origin_file_open(627)
 
     SEE = 3
     x = data['pcl_in'][SEE][:,:3].detach().cpu().numpy()
@@ -93,8 +60,10 @@ if __name__ == '__main__':
     # origin = [-0.226, -0.097, 1.017] #4
     origin = [-0.113,-0.127,1.000]
 
-    ret = calc_all_cos_sim(origin)
-
+    # ret = calc_all_cos_sim(origin)
+    origin_features = output_dict['feat'][SEE].detach().cpu().numpy()
+    ret = self_attention(origin_features)
+    
     v = pptk.viewer(x,ret)
     # v = pptk.viewer(x)#,ret)
     v.set(point_size=0.001)

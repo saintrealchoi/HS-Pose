@@ -15,7 +15,11 @@
         "--detection_dir",
         "./data/segmentation_results",
         "--dataset_dir",
-        "./data"
+        "./data",
+        "--resume",
+        "1",
+        "--resume_model",
+        "./rgb_model_119.pth"
       ],
       "justMyCode": true
     },
@@ -26,11 +30,11 @@
       "module": "evaluation.evaluate",
       "args": [
         "--model_save",
-        "output/test",
+        "output/test/gt/not_gt",
         "--resume",
         "1",
         "--resume_model",
-        "./output/models/rgb-direct/model_09.pth",
+        "./rgb_model_119.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
@@ -51,7 +55,7 @@
         "--resume",
         "1",
         "--resume_model",
-        "./model_119.pth",
+        "./rgb_model_119.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
@@ -68,6 +72,27 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "justMyCode": false
-    }
+    },
+    {
+      "name": "gt_Test",
+      "type": "python",
+      "request": "launch",
+      "module": "evaluation.evaluate_gt",
+      "args": [
+        "--model_save",
+        "output/test/gt/gt/",
+        "--resume",
+        "1",
+        "--resume_model",
+        "./rgb_model_119.pth",
+        "--eval_seed",
+        "1677483078",
+        "--detection_dir",
+        "./data/segmentation_results",
+        "--dataset_dir",
+        "./data"
+      ],
+      "justMyCode": true
+    },
   ]
 }

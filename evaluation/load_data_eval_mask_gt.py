@@ -11,6 +11,7 @@ import torch.utils.data as data
 from tools.eval_utils import load_depth, get_bbox
 from tools.dataset_utils import *
 from evaluation.eval_utils_v1 import get_3d_bbox, transform_coordinates_3d, compute_3d_iou_new
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 class PoseDataset(data.Dataset):
@@ -196,7 +197,20 @@ class PoseDataset(data.Dataset):
             depth = load_depth(depth_path)
         else:
             return None
-        num_instance = len(detection_dict['pred_class_ids'])
+        
+        ###start###
+        mask_path = img_path + '_mask.png'
+        mask = cv2.imread(mask_path)
+        if mask is not None:
+            mask = mask[:, :, 2]
+        else:
+            return None
+        
+        detection_dict['pred_class_ids'] = detection_dict['gt_class_ids']
+        detection_dict['pred_bboxes'] = detection_dict['gt_bboxes']
+        detection_dict['pred_scores'] = np.ones(len(gts['class_ids']),dtype=np.float32)
+        
+        num_instance = len(gts['class_ids'])
 
         sym_infos = []
         mean_shapes = []
@@ -209,7 +223,7 @@ class PoseDataset(data.Dataset):
         pcl_indices = []
 
         for j in range(num_instance):
-            cat_id = detection_dict['pred_class_ids'][j]
+            cat_id = gts['class_ids'][j]
             if self.per_obj_id is not None:
                 if cat_id != self.per_obj_id:
                     continue
@@ -218,8 +232,10 @@ class PoseDataset(data.Dataset):
 
             coord_2d = get_2d_coord_np(im_W, im_H).transpose(1, 2, 0)
             # aggragate information about the selected object
-            mask = detection_dict['pred_masks'][:, :, j]
-            bbox = detection_dict['pred_bboxes'][j]
+            # mask value does not mean object category. it means instance number 
+            mask_tmp = (mask==(j+1))
+            bbox = gts['bboxes'][j]
+            
             rmin, rmax, cmin, cmax = get_bbox(bbox)
             # here resize and crop to a fixed size 256 x 256
             bbox_xyxy = np.array([cmin, rmin, cmax, rmax])
@@ -230,12 +246,24 @@ class PoseDataset(data.Dataset):
             bbox_center = np.array([cx, cy])  # (w/2, h/2)
             scale = max(y2 - y1, x2 - x1)
             scale = min(scale, max(im_H, im_W)) * 1.0
-            
+
+            # fig, ax = plt.subplots()
+            # ax.imshow(mask_tmp)
+            # rect = patches.Rectangle((x1,y1),x2-x1,y2-y1,linewidth=1,edgecolor='r', facecolor='none')
+            # ax.add_patch(rect)
+            # plt.show()
+            # bh = y2 - y1
+            # bw = x2 - x1
+            # scale_ratio = 1 + FLAGS.DZI_SCALE_RATIO * (2 * np.random.random_sample() - 1)  # [1-0.25, 1+0.25]
+            # shift_ratio = FLAGS.DZI_SHIFT_RATIO * (2 * np.random.random_sample(2) - 1)  # [-0.25, 0.25]
+            # bbox_center = np.array([cx + bw * shift_ratio[0], cy + bh * shift_ratio[1]])  # (h/2, w/2)
+            # scale = max(y2 - y1, x2 - x1) * scale_ratio * FLAGS.DZI_PAD_SCALE
+
             # roi_coord_2d ----------------------------------------------------
             roi_coord_2d = crop_resize_by_warp_affine(
                 coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             ).transpose(2, 0, 1)
-            mask_target = mask.copy().astype(np.float)
+            mask_target = mask_tmp.copy().astype(np.float)
             # depth[mask_target == 0.0] = 0.0
             roi_rgb = crop_resize_by_warp_affine(
                 rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
