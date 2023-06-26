@@ -28,9 +28,10 @@ flags.DEFINE_float('aug_bb_pro', 0.3, 'probability to augment size')
 flags.DEFINE_float('aug_bc_pro', 0.3, 'box cage based augmentation, only valid for bowl, mug')
 
 # pose network
-flags.DEFINE_integer('feat_c_R', 1545, 'input channel of rotation') # TODO: change
+flags.DEFINE_integer('feat_rgb', 1280, 'output channel of rgb network') # TODO: change
+flags.DEFINE_integer('feat_c_R', 2569, 'input channel of rotation') # TODO: change
 flags.DEFINE_integer('R_c', 4, 'output channel of rotation, here confidence(1)+ rot(3)')
-flags.DEFINE_integer('feat_c_ts', 1548, 'input channel of translation and size')
+flags.DEFINE_integer('feat_c_ts', 2572, 'input channel of translation and size')
 flags.DEFINE_integer('Ts_c', 6,  'output channel of translation (3) + size (3)')
 flags.DEFINE_integer('feat_face',768, 'input channel of the face recon')
 

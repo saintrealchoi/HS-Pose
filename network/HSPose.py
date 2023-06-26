@@ -9,6 +9,7 @@ FLAGS = flags.FLAGS
 
 from network.fs_net_repo.PoseNet9D import PoseNet9D
 from network.PSPNet import PSPNet
+# from mmdetection.mmdet.models.
 # from network.PSPNET_ANOTHER import PSPNet
 from network.point_sample.pc_sample import PC_sample
 from datasets.data_augmentation import defor_3D_pc
@@ -20,12 +21,13 @@ from losses.prop_loss import prop_rot_loss
 from engine.organize_loss import control_loss
 from tools.training_utils import get_gt_v
 from tools.lynne_lib.vision_utils import show_point_cloud
-
+from network.modeling import _segm_resnet
 
 class HSPose(nn.Module):
     def __init__(self, train_stage):
         super(HSPose, self).__init__()
-        self.rgbnet = PSPNet()
+        # self.rgbnet = PSPNet()
+        self.rgbnet = _segm_resnet('deeplabv3', 'resnet50', 6, output_stride=8, pretrained_backbone=True)
         self.posenet = PoseNet9D()
         self.train_stage = train_stage
         self.loss_recon = recon_6face_loss()
@@ -57,14 +59,17 @@ class HSPose(nn.Module):
         sketch = None
         
         rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
-        feature, _, _ = self.rgbnet(rgb)
-        bs = feature.shape[0]
-        feature = feature.view(bs,256,256*256).permute(0,2,1)
-        pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
+        # PSPNET
+        # feature, _, _ = self.rgbnet(rgb)
+        # Deeplabv3
+        _,feature = self.rgbnet(rgb)
+        bs,f_c,h,w = feature.shape
+        feature = feature.view(bs,f_c,h*w).permute(0,2,1)
+        pc_feature = torch.zeros((bs,PC.shape[1],f_c)).to(PC.device)
         for i in range(bs):
             tmp = feature[i,depth_valid[i],:]
-            if tmp.shape[0] < 1028:
-                pc_feature[i] = torch.cat([torch.tile(tmp,(1028//tmp.shape[0],1)),tmp[:1028%tmp.shape[0]]],axis=0)
+            if tmp.shape[0] < PC.shape[1]:
+                pc_feature[i] = torch.cat([torch.tile(tmp,(PC.shape[1]//tmp.shape[0],1)),tmp[:PC.shape[1]%tmp.shape[0]]],axis=0)
             else:
                 pc_feature[i] = tmp[sample_idx[i],:]
             # pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)

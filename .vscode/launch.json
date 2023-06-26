@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Train",
+      "name": "fine_Train",
       "type": "python",
       "request": "launch",
       "module": "engine.train",
@@ -20,6 +20,21 @@
         "1",
         "--resume_model",
         "./rgb_model_119.pth"
+      ],
+      "justMyCode": true
+    },
+    {
+      "name": "Train",
+      "type": "python",
+      "request": "launch",
+      "module": "engine.train",
+      "args": [
+        "--model_save",
+        "output/models/rgb-test/",
+        "--detection_dir",
+        "./data/segmentation_results",
+        "--dataset_dir",
+        "./data",
       ],
       "justMyCode": true
     },
