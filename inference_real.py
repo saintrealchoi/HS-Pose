@@ -88,7 +88,8 @@ def inference(
         if not os.path.exists(color_path):
             continue
         img_vis = cv2.imread(color_path)
-        
+        mask_path = img_full_path + '_mask.png'
+        mask_vis = cv2.imread(mask_path)
         img_path_parsing = img_full_path.split('/')
         mrcnn_path = os.path.join('data/segmentation_results', opt.data, 'results_{}_{}_{}.pkl'.format(
             'test', img_path_parsing[-2], img_path_parsing[-1]))
@@ -208,7 +209,7 @@ def inference(
             #     box_plot_name,
             #     np.copy(im)
             # )
-            cv2.imwrite(str(output_path / f'concat_{i}.png'),np.concatenate((im,depth_map_magma_uint8[:,:,:3],np.repeat(np.expand_dims(img_vis_2d,axis=-1),3,axis=-1)),axis=1))
+            cv2.imwrite(str(output_path / f'concat_{i}.png'),np.concatenate((im,depth_map_magma_uint8[:,:,:3],mask_vis),axis=1))
             
         print("done with image: ", i )
 
