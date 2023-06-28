@@ -64,29 +64,17 @@ def evaluate(argv):
 
         if FLAGS.resume:
             state_dict = torch.load(FLAGS.resume_model)['posenet_state_dict']
-            unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
-            
-            # why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
-            # rename_keys = ["posenet.face_recon.conv_0.STE_layer.weight", "posenet.face_recon.conv_1.STE_layer.weight", "posenet.face_recon.conv_2.STE_layer.weight", "posenet.face_recon.conv_3.STE_layer.weight", "posenet.face_recon.conv_4.STE_layer.weight"]
-            # for key in list(state_dict.keys()):
-            #     for i,rename_key in enumerate(why_keys):
-            #         if key.startswith(rename_key):
-            #             state_dict[rename_keys[i]] = state_dict.pop(why_keys[i])
-                     
-                ##########################################################
+            # unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
             for key in list(state_dict.keys()):
-                for net_to_delete in unnecessary_nets:
-                    if key.startswith(net_to_delete):
-                        state_dict.pop(key)
-                #########################################################
+            #     for net_to_delete in unnecessary_nets:
+            #         if key.startswith(net_to_delete):
+            #             state_dict.pop(key)
                 # Adapt weight name to match old code version. 
                 # Not necessary for weights trained using newest code. 
                 # Dose not change any function. 
-                #########################################################
                 if 'resconv' in key:
                     state_dict[key.replace("resconv", "STE_layer")] = state_dict.pop(key)
             network.load_state_dict(state_dict, strict=True) 
-                #########################################################
         else:
             raise NotImplementedError
         # start to test

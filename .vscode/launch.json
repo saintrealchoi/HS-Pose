@@ -41,6 +41,27 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "justMyCode": true
-    }
+    },
+    {
+      "name": "evaluate_gt",
+      "type": "python",
+      "request": "launch",
+      "module": "evaluation.evaluate_gt",
+      "args": [
+        "--model_save",
+        "output/models/origin_gt",
+        "--resume",
+        "1",
+        "--resume_model",
+        "/home/choisj/Downloads/HS-Pose_weights/model.pth",
+        "--eval_seed",
+        "1677483078",
+        "--dataset_dir",
+        "./data/NOCS",
+        "--model_save",
+        "output/train",
+      ],
+      "justMyCode": true
+    },
   ]
 }
