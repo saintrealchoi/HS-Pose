@@ -154,8 +154,8 @@ def evaluate(argv):
     shift_thres_list = [i / 2 for i in range(21)]
     iou_thres_list = [i / 100 for i in range(101)]
 
-    iou_aps, pose_aps, iou_acc, pose_acc = compute_mAP(pred_results, output_path, degree_thres_list, shift_thres_list,
-                                                     iou_thres_list, iou_pose_thres=0.1, use_matches_for_pose=True,)
+    # iou_aps, pose_aps, iou_acc, pose_acc = compute_mAP(pred_results, output_path, degree_thres_list, shift_thres_list,
+    #                                                  iou_thres_list, iou_pose_thres=0.1, use_matches_for_pose=True,)
     synset_names = ['BG'] + ['bottle', 'bowl', 'camera', 'can', 'laptop', 'mug']
     if FLAGS.per_obj in synset_names:
         idx = synset_names.index(FLAGS.per_obj)
