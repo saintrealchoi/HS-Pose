@@ -64,14 +64,17 @@ def evaluate(argv):
 
         if FLAGS.resume:
             state_dict = torch.load(FLAGS.resume_model)['posenet_state_dict']
-            # unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
+            unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
+            
             for key in list(state_dict.keys()):
-            #     for net_to_delete in unnecessary_nets:
-            #         if key.startswith(net_to_delete):
-            #             state_dict.pop(key)
+                # for net_to_delete in unnecessary_nets:
+                    # if key.startswith(net_to_delete):
+                    #     state_dict.pop(key)
+                #########################################################
                 # Adapt weight name to match old code version. 
                 # Not necessary for weights trained using newest code. 
                 # Dose not change any function. 
+                #########################################################
                 if 'resconv' in key:
                     state_dict[key.replace("resconv", "STE_layer")] = state_dict.pop(key)
             network.load_state_dict(state_dict, strict=True) 
@@ -99,18 +102,9 @@ def evaluate(argv):
                           obj_id=data['cat_id_0base'].to(device), 
                           mean_shape=mean_shape,
                           sym=sym,
-                          rgb = data['rgb_in'].to(device),
-                          depth_valid = data['depth_valid'].to(device),
-                          sample_idx = data['sample_idx'].to(device)
+                        #   depth_valid = data['depth_valid'].to(device),
+                        #   sample_idx = data['sample_idx'].to(device)
                           )
-                
-            # SEE = 5
-            
-            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            # o3d.visualization.draw_geometries([pcd])
-            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            # o3d.visualization.draw_geometries([pcd])
-            
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()
             p_T = output_dict['Pred_T'].detach()

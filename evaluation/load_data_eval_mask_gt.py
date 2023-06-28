@@ -11,7 +11,7 @@ import torch.utils.data as data
 from tools.eval_utils import load_depth, get_bbox
 from tools.dataset_utils import *
 from evaluation.eval_utils_v1 import get_3d_bbox, transform_coordinates_3d, compute_3d_iou_new
-import numpy as np
+
 class PoseDataset(data.Dataset):
     def __init__(self, source=None, mode='test',
                  n_pts=1024, img_size=256):
@@ -196,7 +196,6 @@ class PoseDataset(data.Dataset):
         else:
             return None
         
-        ###start###
         mask_path = img_path + '_mask.png'
         mask = cv2.imread(mask_path)
         if mask is not None:
@@ -216,9 +215,6 @@ class PoseDataset(data.Dataset):
         obj_ids_0base = []
         obj_valid_index = []
         point_clouds = []
-        raw_rgb = []
-        depth_valids = []
-        pcl_indices = []
 
         for j in range(num_instance):
             cat_id = gts['class_ids'][j]
@@ -230,10 +226,10 @@ class PoseDataset(data.Dataset):
 
             coord_2d = get_2d_coord_np(im_W, im_H).transpose(1, 2, 0)
             # aggragate information about the selected object
-            # mask value does not mean object category. it means instance number 
             mask_tmp = (mask==(j+1))
+            # mask = detection_dict['pred_masks'][:, :, j]
             bbox = gts['bboxes'][j]
-            
+            # bbox = detection_dict['pred_bboxes'][j]
             rmin, rmax, cmin, cmax = get_bbox(bbox)
             # here resize and crop to a fixed size 256 x 256
             bbox_xyxy = np.array([cmin, rmin, cmax, rmax])
@@ -250,14 +246,8 @@ class PoseDataset(data.Dataset):
                 coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             ).transpose(2, 0, 1)
             mask_target = mask_tmp.copy().astype(np.float)
-            mask_target[mask_tmp != cat_id] = 0.0
-            mask_target[mask_tmp == cat_id] = 1.0
+            # mask_target = mask.copy().astype(np.float)
             # depth[mask_target == 0.0] = 0.0
-            roi_rgb = crop_resize_by_warp_affine(
-                rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
-            )
-            roi_rgb = np.expand_dims(roi_rgb, axis=0)
-            
             roi_mask = crop_resize_by_warp_affine(
                 mask_target, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             )
@@ -275,11 +265,8 @@ class PoseDataset(data.Dataset):
             roi_m_d_valid = roi_mask.astype(np.bool) * depth_valid
             if np.sum(roi_m_d_valid) <= 1.0:
                 return None
-            # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
-            pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask)
-            pcl_in = pcl_in / 1000.0
-            pcl_in[:,3:] = pcl_in[:,3:]* 5.0
-            pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
+            pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
+            pcl_in = self._sample_points(pcl_in, FLAGS.random_points)
 
             # occupancy canonical
             # sym
@@ -291,9 +278,6 @@ class PoseDataset(data.Dataset):
             obj_ids.append(cat_id)
             obj_ids_0base.append(cat_id - 1)
             point_clouds.append(pcl_in)
-            raw_rgb.append(roi_rgb)
-            depth_valids.append(valid)
-            pcl_indices.append(indices)
 
         if self.per_obj_id is not None:
             for key in ['pred_class_ids', 'pred_bboxes', 'pred_scores']:
@@ -307,18 +291,13 @@ class PoseDataset(data.Dataset):
         obj_ids = np.array(obj_ids)
         obj_ids_0base = np.array(obj_ids_0base)
         point_clouds = np.array(point_clouds)
-        raw_rgb = np.array(raw_rgb)
-        depth_valids = np.array(depth_valids)
-        pcl_indices = np.array(pcl_indices)
+
         data_dict = {}
         data_dict['cat_id'] = torch.as_tensor(obj_ids)
         data_dict['cat_id_0base'] = torch.as_tensor(obj_ids_0base)
         data_dict['sym_info'] = torch.as_tensor(sym_infos.astype(np.float32)).contiguous()
         data_dict['mean_shape'] = torch.as_tensor(mean_shapes, dtype=torch.float32).contiguous()
         data_dict['pcl_in'] = torch.as_tensor(point_clouds.astype(np.float32)).contiguous()
-        data_dict['rgb_in'] =torch.as_tensor(raw_rgb.astype(np.float32)).contiguous()
-        data_dict['sample_idx'] = torch.as_tensor(pcl_indices).contiguous()
-        data_dict['depth_valid'] = torch.as_tensor(depth_valids.astype(np.bool8)).contiguous()
         return data_dict, detection_dict, gts
 
     def _get_depth_normalize(self, roi_depth, roi_m_d_valid):
@@ -337,27 +316,11 @@ class PoseDataset(data.Dataset):
         total_pts_num = pcl.shape[0]
         if total_pts_num < n_pts:
             pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
-            ids = np.arange(n_pts)
         elif total_pts_num > n_pts:
             ids = np.random.permutation(total_pts_num)[:n_pts]
             pcl = pcl[ids]
-        return pcl,ids
-    def _depth_bgr_to_pcl(self, depth, rgb, K, xymap, mask):
-        K = K.reshape(-1)
-        cx, cy, fx, fy = K[2], K[5], K[0], K[4]
-        depth = depth.reshape(-1).astype(np.float)
-        # bgr
-        valid = ((depth > 0) * mask.reshape(-1)) > 0
-        depth = depth[valid]
-        b = rgb[:,:,:,0].reshape(-1).astype(np.float)[valid]
-        g = rgb[:,:,:,1].reshape(-1).astype(np.float)[valid]
-        r = rgb[:,:,:,2].reshape(-1).astype(np.float)[valid]
-        x_map = xymap[0].reshape(-1)[valid]
-        y_map = xymap[1].reshape(-1)[valid]
-        real_x = (x_map - cx) * depth / fx
-        real_y = (y_map - cy) * depth / fy
-        pcl = np.stack((real_x, real_y, depth, b, g, r), axis=-1)
-        return pcl.astype(np.float32),valid.astype(np.bool8)
+        return pcl
+
     def _depth_to_pcl(self, depth, K, xymap, mask):
         K = K.reshape(-1)
         cx, cy, fx, fy = K[2], K[5], K[0], K[4]
