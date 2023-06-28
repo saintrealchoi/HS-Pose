@@ -250,8 +250,8 @@ class PoseDataset(data.Dataset):
                 coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
             ).transpose(2, 0, 1)
             mask_target = mask_tmp.copy().astype(np.float)
-            mask_target[mask_tmp != cat_id] = 0.0
-            mask_target[mask_tmp == cat_id] = 1.0
+            # mask_target[mask_tmp != cat_id] = 0.0
+            # mask_target[mask_tmp == cat_id] = 1.0
             # depth[mask_target == 0.0] = 0.0
             roi_rgb = crop_resize_by_warp_affine(
                 rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
@@ -269,11 +269,11 @@ class PoseDataset(data.Dataset):
             roi_depth = np.expand_dims(roi_depth, axis=0)
 
             depth_valid = roi_depth > 0
-            if np.sum(depth_valid) <= 1.0:
+            if np.sum(depth_valid[0]) <= 1.0:
                 return None
 
             roi_m_d_valid = roi_mask.astype(np.bool) * depth_valid
-            if np.sum(roi_m_d_valid) <= 1.0:
+            if np.sum(roi_m_d_valid[0]) <= 1.0:
                 return None
             # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask) / 1000.0
             pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask)

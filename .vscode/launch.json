@@ -95,11 +95,11 @@
       "module": "evaluation.evaluate_gt",
       "args": [
         "--model_save",
-        "output/models/rgb-3drecon/model_29_gt",
+        "output/models/rgb-deeplab/model_29_gt",
         "--resume",
         "1",
         "--resume_model",
-        "./output/models/rgb-3drecon/model_29.pth",
+        "./deeplab_model_49.pth",
         "--eval_seed",
         "1677483078",
         "--detection_dir",
