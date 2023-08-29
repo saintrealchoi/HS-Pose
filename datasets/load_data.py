@@ -19,7 +19,7 @@ from tools.dataset_utils import *
 
 
 class PoseDataset(data.Dataset):
-    def __init__(self, source=None, mode='train', data_dir=None,
+    def __init__(self, cfg, source=None, mode='train', data_dir=None,
                  n_pts=1024, img_size=256, per_obj=''):
         '''
 
@@ -29,6 +29,7 @@ class PoseDataset(data.Dataset):
         :param n_pts: 'number of selected sketch point', no use here
         :param img_size: cropped image size
         '''
+        self.cfg = cfg
         self.source = source
         self.mode = mode
         self.data_dir = data_dir
@@ -152,7 +153,7 @@ class PoseDataset(data.Dataset):
         print('{} models loaded.'.format(len(self.models)))
 
     def __len__(self):
-        return FLAGS.train_steps * FLAGS.batch_size 
+        return self.cfg["train_steps"] * self.cfg["batch_size"]
 
     def __getitem__(self, index):
         if self.source == 'CAMERA+Real':
@@ -232,7 +233,7 @@ class PoseDataset(data.Dataset):
         bbox_center, scale = aug_bbox_DZI(FLAGS, bbox_xyxy, im_H, im_W)
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
-            coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+            coord_2d, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
         ).transpose(2, 0, 1)
 
         mask_target = mask.copy().astype(np.float)
@@ -240,17 +241,17 @@ class PoseDataset(data.Dataset):
         mask_target[mask == inst_id] = 1.0
 
         roi_rgb = crop_resize_by_warp_affine(
-            rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+            rgb, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
         )
         roi_rgb = np.expand_dims(roi_rgb, axis=0)
         
         roi_mask = crop_resize_by_warp_affine(
-            mask_target, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+            mask_target, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
         )
         roi_mask = np.expand_dims(roi_mask, axis=0)
         # depth[mask_target == 0.0] = 0.0
         roi_depth = crop_resize_by_warp_affine(
-            depth, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+            depth, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
         )
 
         roi_depth = np.expand_dims(roi_depth, axis=0)
@@ -275,7 +276,7 @@ class PoseDataset(data.Dataset):
         rotation = gts['rotations'][idx]
         translation = gts['translations'][idx]
         # add nnoise to roi_mask
-        roi_mask_def = defor_2D(roi_mask, rand_r=FLAGS.roi_mask_r, rand_pro=FLAGS.roi_mask_pro)
+        roi_mask_def = defor_2D(roi_mask, rand_r=self.cfg["roi_mask_r"], rand_pro=self.cfg["roi_mask_pro"])
 
         # pcl_in = self._depth_to_pcl(roi_depth, out_camK, roi_coord_2d, roi_mask_def) / 1000.0
         pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask_def)
@@ -283,7 +284,7 @@ class PoseDataset(data.Dataset):
         pcl_in[:,3:] = pcl_in[:,3:]* 5.0
         if len(pcl_in) < 50:
             return self.__getitem__((index + 1) % self.__len__())
-        pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
+        pcl_in,indices = self._sample_points(pcl_in, self.cfg["random_points"])
         # sym
         sym_info = self.get_sym_info(self.id2cat_name[str(cat_id + 1)], mug_handle=mug_handle)
         # generate augmentation parameters

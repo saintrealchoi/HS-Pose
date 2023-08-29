@@ -10,10 +10,11 @@ FLAGS = flags.FLAGS
 
 
 class FaceRecon(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(FaceRecon, self).__init__()
-        self.neighbor_num = FLAGS.gcn_n_num
-        self.support_num = FLAGS.gcn_sup_num
+        self.cfg = cfg
+        self.neighbor_num = self.cfg["gcn_n_num"]
+        self.support_num = self.cfg["gcn_sup_num"]
 
         # 3D convolution for point cloud
         self.conv_0 = gcn3d.HSlayer_surface(kernel_num=128, support_num=self.support_num)
@@ -29,12 +30,12 @@ class FaceRecon(nn.Module):
         self.bn3 = nn.BatchNorm1d(256)
 
         self.recon_num = 3
-        self.face_recon_num = FLAGS.face_recon_c
+        self.face_recon_num = self.cfg["face_recon_c"]
 
-        dim_fuse = sum([128, 128, 256, 256, 512, FLAGS.obj_c, 259]) # TODO:
+        dim_fuse = sum([128, 128, 256, 256, 512, self.cfg["obj_c"], 259]) # TODO:
         # 16: total 6 categories, 256 is global feature
 
-        if FLAGS.train:
+        if self.cfg["train"]:
             self.conv1d_block = nn.Sequential(
                 nn.Conv1d(dim_fuse, 512, 1),
                 nn.BatchNorm1d(512),
@@ -55,7 +56,7 @@ class FaceRecon(nn.Module):
             )
 
             self.face_head = nn.Sequential(
-                nn.Conv1d(FLAGS.feat_face + 3, 512, 1),
+                nn.Conv1d(self.cfg["feat_face"] + 3, 512, 1),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
                 nn.Conv1d(512, 256, 1),
@@ -83,7 +84,7 @@ class FaceRecon(nn.Module):
         else:
             obj_idh = cat_id.view(-1, 1)
 
-        one_hot = torch.zeros(bs, FLAGS.obj_c).to(cat_id.device).scatter_(1, obj_idh.long(), 1)
+        one_hot = torch.zeros(bs, self.cfg["obj_c"]).to(cat_id.device).scatter_(1, obj_idh.long(), 1)
         # bs x verticenum x 6
 
         # ss = time.time()
@@ -112,7 +113,7 @@ class FaceRecon(nn.Module):
         feat_face_re = feat_face.repeat(1, feat.shape[1], 1)
         '''
 
-        if FLAGS.train:
+        if self.cfg["train"]:
             feat_face_re = f_global.view(bs, 1, f_global.shape[1]).repeat(1, feat.shape[1], 1).permute(0, 2, 1)
             # feat is the extracted per pixel level feature
 

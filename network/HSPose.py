@@ -26,7 +26,7 @@ class HSPose(nn.Module):
     def __init__(self, cfg, train_stage):
         super(HSPose, self).__init__()
         self.rgbnet = PSPNet()
-        self.posenet = PoseNet9D()
+        self.posenet = PoseNet9D(cfg)
         self.train_stage = train_stage
         self.cfg = cfg
         self.loss_recon = recon_6face_loss()

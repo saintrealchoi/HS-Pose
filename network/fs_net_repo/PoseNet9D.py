@@ -12,13 +12,14 @@ from network.fs_net_repo.FaceRecon import FaceRecon
 FLAGS = flags.FLAGS
 
 class PoseNet9D(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(PoseNet9D, self).__init__()
         # Used the fsnet rot_green and rot_red directly
-        self.rot_green = Rot_green() 
-        self.rot_red = Rot_red()
-        self.face_recon = FaceRecon()
-        self.ts = Pose_Ts()
+        self.cfg = cfg
+        self.rot_green = Rot_green(cfg) 
+        self.rot_red = Rot_red(cfg)
+        self.face_recon = FaceRecon(cfg)
+        self.ts = Pose_Ts(cfg)
 
     def forward(self, points, obj_id):
         bs, p_num = points.shape[0], points.shape[1]
@@ -26,7 +27,7 @@ class PoseNet9D(nn.Module):
         points = points[:,:,:3]
         recon, face, feat = self.face_recon(points - points.mean(dim=1, keepdim=True), obj_id, bgr)
 
-        if FLAGS.train:
+        if self.cfg["train"]:
             recon = recon + points.mean(dim=1, keepdim=True)
             # handle face
             face_normal = face[:, :, :18].view(bs, p_num, 6, 3)  # normal

@@ -41,7 +41,7 @@ torch.autograd.set_detect_anomaly(True)
 device = 'cuda'
 
 def train():
-    with open('/home/sungjin/HS-Pose/config/config.yaml') as f:
+    with open('/home/sungjin/git/HS-Pose/config/config.yaml') as f:
         cfg = yaml.safe_load(f)
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg['gpu_num']
     ngpus_per_node = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
@@ -94,10 +94,10 @@ def main_worker(gpu,ngpus_per_node,cfg):
     param_list = network.build_params(training_stage_freeze=[])
     optimizer = build_optimizer(param_list)
     optimizer.zero_grad()   # first clear the grad
-    scheduler = build_lr_rate(optimizer, total_iters=train_steps * FLAGS.total_epoch // FLAGS.accumulate)
+    scheduler = build_lr_rate(optimizer, total_iters=train_steps * cfg["total_epoch"] // cfg["accumulate"])
     # resume or not
     s_epoch = 0
-    if FLAGS.resume:
+    if cfg["resume"]:
         # checkpoint = torch.load(FLAGS.resume_model)
         network.load_state_dict(checkpoint['posenet_state_dict'])
         s_epoch = checkpoint['epoch'] + 1
@@ -107,18 +107,18 @@ def main_worker(gpu,ngpus_per_node,cfg):
 
 
     # build dataset annd dataloader
-    train_dataset = PoseDataset(source=FLAGS.dataset, mode='train',
-                                data_dir=FLAGS.dataset_dir, per_obj=FLAGS.per_obj)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=FLAGS.batch_size,
-                                                   num_workers=FLAGS.num_workers, pin_memory=True,
+    train_dataset = PoseDataset(cfg,source=cfg["dataset"], mode='train',
+                                data_dir=cfg["dataset_dir"], per_obj=cfg["per_obj"])
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg["batch_size"],
+                                                   num_workers=cfg["num_workers"], pin_memory=True,
                                                    prefetch_factor = 4,
                                                    worker_init_fn =seed_worker,
                                                    shuffle=True )
     network.train()
     global_step = train_steps * s_epoch  # record the number iteration
-    for epoch in range(s_epoch, FLAGS.total_epoch):
+    for epoch in range(s_epoch, cfg["total_epoch"]):
         i = 0
-        for data in tqdm(train_dataloader, desc=f'Training {epoch}/{FLAGS.total_epoch}', dynamic_ncols=True):
+        for data in tqdm(train_dataloader, desc=f'Training {epoch}/{cfg["total_epoch"]}', dynamic_ncols=True):
             torch.cuda.synchronize()
             output_dict, loss_dict \
                 = network(
@@ -153,7 +153,7 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 global_step += 1
                 continue
             # backward
-            if global_step % FLAGS.accumulate == 0:
+            if global_step % cfg["accumulate"] == 0:
                 total_loss.backward()
                 torch.nn.utils.clip_grad_norm_(network.parameters(), 5)
                 optimizer.step()
@@ -163,12 +163,12 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 total_loss.backward()
                 torch.nn.utils.clip_grad_norm_(network.parameters(), 5)
             global_step += 1
-            if i % FLAGS.log_every == 0:
+            if i % cfg["log_every"] == 0:
                 write_to_summary(tb_writter, optimizer, total_loss, fsnet_loss, prop_loss, recon_loss, global_step)
             i += 1
 
         # save model
-        if (epoch + 1) % FLAGS.save_every == 0 or (epoch + 1) == FLAGS.total_epoch:
+        if (epoch + 1) % cfg["save_every"] == 0 or (epoch + 1) == cfg["total_epoch"]:
             torch.save(
                 {
                 'seed': seed,
@@ -177,7 +177,7 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 'scheduler': scheduler.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 },
-                '{0}/model_{1:02d}.pth'.format(FLAGS.model_save, epoch))
+                '{0}/model_{1:02d}.pth'.format(cfg["model_save"], epoch))
         torch.cuda.empty_cache()
 
 def write_to_summary(writter, optimizer, total_loss, fsnet_loss, prop_loss, recon_loss, global_step):

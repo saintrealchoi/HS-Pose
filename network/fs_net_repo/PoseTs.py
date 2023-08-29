@@ -10,10 +10,10 @@ FLAGS = flags.FLAGS
 # one more conv layer compared to original paper
 
 class Pose_Ts(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(Pose_Ts, self).__init__()
-        self.f = FLAGS.feat_c_ts
-        self.k = FLAGS.Ts_c
+        self.f = self.cfg["feat_c_ts"]
+        self.k = self.cfg["Ts_c"]
 
         self.conv1 = torch.nn.Conv1d(self.f, 1024, 1)
 

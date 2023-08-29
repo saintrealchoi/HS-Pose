@@ -8,7 +8,6 @@ from config.config import *
 from absl import app
 from numpy import dot
 from numpy.linalg import norm
-FLAGS = flags.FLAGS
 from evaluation.load_data_eval import PoseDataset
 import numpy as np
 import time
