@@ -46,7 +46,7 @@ train_stage: PoseNet_only
 device: cuda:0
 num_workers: 8
 seed: -1
-batch_size: 16
+batch_size: 64
 total_epoch: 150
 train_steps: 1500
 accumulate: 1
@@ -87,7 +87,7 @@ anneal_point: 0.72
 optimizer_type: Ranger
 weight_decay: 0.0
 warmup_factor: 0.001
-warmup_iters: 1000
+warmup_iters: 250
 warmup_method: linear
 gamma: 0.1
 poly_power: 0.9
