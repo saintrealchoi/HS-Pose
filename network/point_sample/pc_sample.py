@@ -5,7 +5,7 @@ import absl.flags as flags
 
 FLAGS = flags.FLAGS
 
-def PC_sample(obj_mask, Depth, camK, coor2d):
+def PC_sample(obj_mask, Depth, camK, coor2d,cfg):
     '''
     :param Depth: bs x 1 x h x w
     :param camK:
@@ -25,7 +25,7 @@ def PC_sample(obj_mask, Depth, camK, coor2d):
     x_label = coor2d[:, 0, :, :]
     y_label = coor2d[:, 1, :, :]
 
-    rand_num = FLAGS.random_points
+    rand_num = cfg["random_points"]
     samplenum = rand_num
 
     PC = torch.zeros([bs, samplenum, 3], dtype=torch.float32, device=Depth.device)
@@ -54,7 +54,7 @@ def PC_sample(obj_mask, Depth, camK, coor2d):
                              dp_now[fuse_mask > 0].view(-1, 1)], dim=1)
 
         # basic sampling
-        if FLAGS.sample_method == 'basic':
+        if cfg["sample_method"] == 'basic':
             l_all = p_n_now.shape[0]
             if l_all <= 1.0:
                 return None, None

@@ -8,15 +8,16 @@ FLAGS = flags.FLAGS  # can control the weight of each term here
 
 
 class geo_transform_loss(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(geo_transform_loss, self).__init__()
+        self.cfg = cfg
         self.loss_func = nn.L1Loss()
 
     def forward(self, name_list, pred_list, gt_list, sym):
         loss_list = {}
 
         if 'Geo_point' in name_list:
-            loss_list['geo_point'] = FLAGS.geo_p_w * self.cal_geo_loss_point(gt_list['Points'],
+            loss_list['geo_point'] = self.cfg["geo_p_w"] * self.cal_geo_loss_point(gt_list['Points'],
                                                                              pred_list['Rot1'],
                                                                              pred_list['Rot2'],
                                                                              pred_list['Tran'],
@@ -25,7 +26,7 @@ class geo_transform_loss(nn.Module):
 
         if 'Geo_face' in name_list:
             # not used
-            loss_list['geo_face'] = FLAGS.geo_f_w * self.cal_geo_loss_face(gt_list['Points'],
+            loss_list['geo_face'] = self.cfg["geo_f_w"] * self.cal_geo_loss_face(gt_list['Points'],
                                                                            pred_list['Rot1'],
                                                                            pred_list['Rot1_f'],
                                                                            pred_list['Rot2'],

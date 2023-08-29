@@ -230,7 +230,7 @@ class PoseDataset(data.Dataset):
         rmin, rmax, cmin, cmax = get_bbox(gts['bboxes'][idx])
         # here resize and crop to a fixed size 256 x 256
         bbox_xyxy = np.array([cmin, rmin, cmax, rmax])
-        bbox_center, scale = aug_bbox_DZI(FLAGS, bbox_xyxy, im_H, im_W)
+        bbox_center, scale = aug_bbox_DZI(self.cfg, bbox_xyxy, im_H, im_W)
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
             coord_2d, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST

@@ -21,7 +21,7 @@ def get_2d_coord_np(width, height, low=0, high=1, fmt="CHW"):
         raise ValueError(f"Unknown format: {fmt}")
     return xy
 
-def aug_bbox_DZI(FLAGS, bbox_xyxy, im_H, im_W):
+def aug_bbox_DZI(cfg, bbox_xyxy, im_H, im_W):
     """Used for DZI, the augmented box is a square (maybe enlarged)
     Args:
         bbox_xyxy (np.ndarray):
@@ -33,12 +33,12 @@ def aug_bbox_DZI(FLAGS, bbox_xyxy, im_H, im_W):
     cy = 0.5 * (y1 + y2)
     bh = y2 - y1
     bw = x2 - x1
-    if FLAGS.DZI_TYPE.lower() == "uniform":
-        scale_ratio = 1 + FLAGS.DZI_SCALE_RATIO * (2 * np.random.random_sample() - 1)  # [1-0.25, 1+0.25]
-        shift_ratio = FLAGS.DZI_SHIFT_RATIO * (2 * np.random.random_sample(2) - 1)  # [-0.25, 0.25]
+    if cfg["DZI_TYPE"].lower() == "uniform":
+        scale_ratio = 1 + cfg["DZI_SCALE_RATIO"] * (2 * np.random.random_sample() - 1)  # [1-0.25, 1+0.25]
+        shift_ratio = cfg["DZI_SHIFT_RATIO"] * (2 * np.random.random_sample(2) - 1)  # [-0.25, 0.25]
         bbox_center = np.array([cx + bw * shift_ratio[0], cy + bh * shift_ratio[1]])  # (h/2, w/2)
-        scale = max(y2 - y1, x2 - x1) * scale_ratio * FLAGS.DZI_PAD_SCALE
-    elif FLAGS.DZI_TYPE.lower() == "roi10d":
+        scale = max(y2 - y1, x2 - x1) * scale_ratio * cfg["DZI_PAD_SCALE"]
+    elif cfg["DZI_TYPE"].lower() == "roi10d":
         # shift (x1,y1), (x2,y2) by 15% in each direction
         _a = -0.15
         _b = 0.15
@@ -51,8 +51,8 @@ def aug_bbox_DZI(FLAGS, bbox_xyxy, im_H, im_W):
         y1 = min(max(y1, 0), im_H)
         y2 = min(max(y2, 0), im_H)
         bbox_center = np.array([0.5 * (x1 + x2), 0.5 * (y1 + y2)])
-        scale = max(y2 - y1, x2 - x1) * FLAGS.DZI_PAD_SCALE
-    elif FLAGS.DZI_TYPE.lower() == "truncnorm":
+        scale = max(y2 - y1, x2 - x1) * cfg["DZI_PAD_SCALE"]
+    elif cfg["DZI_TYPE"].lower() == "truncnorm":
         raise NotImplementedError("DZI truncnorm not implemented yet.")
     else:
         bbox_center = np.array([cx, cy])  # (w/2, h/2)

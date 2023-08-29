@@ -29,10 +29,10 @@ class HSPose(nn.Module):
         self.posenet = PoseNet9D(cfg)
         self.train_stage = train_stage
         self.cfg = cfg
-        self.loss_recon = recon_6face_loss()
-        self.loss_fs_net = fs_net_loss()
-        self.loss_geo = geo_transform_loss()
-        self.loss_prop = prop_rot_loss()
+        self.loss_recon = recon_6face_loss(cfg)
+        self.loss_fs_net = fs_net_loss(cfg)
+        self.loss_geo = geo_transform_loss(cfg)
+        self.loss_prop = prop_rot_loss(cfg)
         self.name_fs_list, self.name_recon_list, \
             self.name_geo_list, self.name_prop_list = control_loss(self.train_stage)
 
@@ -48,7 +48,7 @@ class HSPose(nn.Module):
                 bs = depth.shape[0]
                 H, W = depth.shape[2], depth.shape[3]
                 sketch = torch.rand([bs, 6, H, W], device=depth.device).detach()
-                PC = PC_sample(def_mask, depth, camK, gt_2D)
+                PC = PC_sample(def_mask, depth, camK, gt_2D,self.cfg)
                 if PC is None:
                     return output_dict, None
             else:
@@ -288,7 +288,7 @@ class HSPose(nn.Module):
         params_lr_list.append(
             {
                 "params": filter(lambda p: p.requires_grad, self.posenet.parameters()),
-                "lr": float(self.cfg["lr)"]) * self.cfg["lr_pose"],
+                "lr": float(self.cfg["lr"]) * self.cfg["lr_pose"],
             }
         )
 

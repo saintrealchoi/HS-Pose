@@ -9,16 +9,17 @@ FLAGS = flags.FLAGS  # can control the weight of each term here
 
 
 class fs_net_loss(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(fs_net_loss, self).__init__()
-        if FLAGS.fsnet_loss_type == 'l1':
+        self.cfg = cfg
+        if self.cfg["fsnet_loss_type"] == 'l1':
             self.loss_func_t = nn.L1Loss()
             self.loss_func_s = nn.L1Loss()
             self.loss_func_Rot1 = nn.L1Loss()
             self.loss_func_Rot2 = nn.L1Loss()
             self.loss_func_r_con = nn.L1Loss()
             self.loss_func_Recon = nn.L1Loss()
-        elif FLAGS.fsnet_loss_type == 'smoothl1':   # same as MSE
+        elif self.cfg["fsnet_loss_type"] == 'smoothl1':   # same as MSE
             self.loss_func_t = nn.SmoothL1Loss(beta=0.5)
             self.loss_func_s = nn.SmoothL1Loss(beta=0.5)
             self.loss_func_Rot1 = nn.SmoothL1Loss(beta=0.5)
@@ -32,29 +33,29 @@ class fs_net_loss(nn.Module):
         loss_list = {}
         if "Rot1" in name_list:
             # rot1  0.0003094673156738281
-            loss_list["Rot1"] = FLAGS.rot_1_w * self.cal_loss_Rot1(pred_list["Rot1"], gt_list["Rot1"])
+            loss_list["Rot1"] = self.cfg["rot_1_w"] * self.cal_loss_Rot1(pred_list["Rot1"], gt_list["Rot1"])
 
         if "Rot1_cos" in name_list:
             #rot1_cos 0.0010631084442138672
-            loss_list["Rot1_cos"] = FLAGS.rot_1_w * self.cal_cosine_dis(pred_list["Rot1"], gt_list["Rot1"])
+            loss_list["Rot1_cos"] = self.cfg["rot_1_w"] * self.cal_cosine_dis(pred_list["Rot1"], gt_list["Rot1"])
 
         if "Rot2" in name_list:
             # rot2  0.0013346672058105469 
-            loss_list["Rot2"] = FLAGS.rot_2_w * self.cal_loss_Rot2(pred_list["Rot2"], gt_list["Rot2"], sym)
+            loss_list["Rot2"] = self.cfg["rot_2_w"] * self.cal_loss_Rot2(pred_list["Rot2"], gt_list["Rot2"], sym)
 
         if "Rot2_cos" in name_list: 
             # rot2_cos 0.0018091201782226562  rot_2_w = 8.0
-            loss_list["Rot2_cos"] = FLAGS.rot_2_w * self.cal_cosine_dis_sym(pred_list["Rot2"], gt_list["Rot2"], sym)
+            loss_list["Rot2_cos"] = self.cfg["rot_2_w"] * self.cal_cosine_dis_sym(pred_list["Rot2"], gt_list["Rot2"], sym)
 
         if "Rot_regular" in name_list:
             # rot_r_a 0.0016679763793945312 rot_regular = 4.0
-            loss_list["Rot_r_a"] = FLAGS.rot_regular * self.cal_rot_regular_angle(pred_list["Rot1"],
+            loss_list["Rot_r_a"] = self.cfg["rot_regular"] * self.cal_rot_regular_angle(pred_list["Rot1"],
                                   pred_list["Rot2"], sym)
 
         if "Recon" in name_list:
             # not used
             begin = time.time() # recon_w = 8.0
-            loss_list["Recon"] = FLAGS.recon_w * self.cal_loss_Recon(
+            loss_list["Recon"] = self.cfg["recon_w"] * self.cal_loss_Recon(
                                                     pred_list["Recon"], 
                                                     gt_list["Recon"])
             print('recon', time.time() - begin)
@@ -62,15 +63,15 @@ class fs_net_loss(nn.Module):
 
         if "Tran" in name_list:
             # tran 0.00024175643920898438
-            loss_list["Tran"] = FLAGS.tran_w * self.cal_loss_Tran(pred_list["Tran"], gt_list["Tran"])
+            loss_list["Tran"] = self.cfg["tran_w"] * self.cal_loss_Tran(pred_list["Tran"], gt_list["Tran"])
 
         if "Size" in name_list:
             # size 0.00023317337036132812
-            loss_list["Size"] = FLAGS.size_w * self.cal_loss_Size(pred_list["Size"], gt_list["Size"])
+            loss_list["Size"] = self.cfg["size_w"] * self.cal_loss_Size(pred_list["Size"], gt_list["Size"])
 
         if "R_con" in name_list:
             # r_con 0.0017731189727783203
-            loss_list["R_con"] = FLAGS.r_con_w * self.cal_loss_R_con(
+            loss_list["R_con"] = self.cfg["r_con_w"] * self.cal_loss_R_con(
                                 pred_list["Rot1"], pred_list["Rot2"],
                                 gt_list["Rot1"], gt_list["Rot2"],
                                 pred_list["Rot1_f"], pred_list["Rot2_f"], sym)

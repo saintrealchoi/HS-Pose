@@ -8,141 +8,120 @@ from absl import app
 from config.config import *
 from tools.training_utils import build_lr_rate, build_optimizer
 from network.HSPose import HSPose 
-import argparse
-import yaml
 FLAGS = flags.FLAGS
 from datasets.load_data import PoseDataset
 from tqdm import tqdm
 import time
 import numpy as np
-
+import utils.ddp
 # from creating log
 import tensorflow as tf
 from tools.eval_utils import setup_logger
 from tensorflow.compat.v1 import Summary
 
-# for distributed training
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch.optim as optim
-
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
-
-    # initialize the process group
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-
-def cleanup():
-    dist.destroy_process_group()
-
+from utils.seed import setup_seed
 torch.autograd.set_detect_anomaly(True)
-device = 'cuda'
+import argparse
+def parse_args():
+    parser = argparse.ArgumentParser()
 
-def train():
-    with open('/home/sungjin/HS-Pose/config/config.yaml') as f:
-        cfg = yaml.safe_load(f)
-    os.environ["CUDA_VISIBLE_DEVICES"] = cfg['gpu_num']
-    ngpus_per_node = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
-    cfg['distributed'] = cfg['world_size'] > 1 or cfg['multiprocessing_distributed']
-    if cfg['multiprocessing_distributed']:
-        cfg['world_size']=ngpus_per_node*cfg['world_size']
-        mp.spawn(main_worker,nprocs=ngpus_per_node,args=(ngpus_per_node,cfg))
-    else:
-        main_worker(cfg['gpu_num'], ngpus_per_node, cfg)
+    parser.add_argument("--weights", type=str, default="", help="Load weights to resume training")
 
-def main_worker(gpu,ngpus_per_node,cfg):
-    print(gpu, ngpus_per_node)
-    cfg['gpu'] = gpu
+    parser.add_argument("--dataset", type=str, default="./configs/datasets/voc0712.yaml")
+    parser.add_argument("--model", type=str, default="./configs/models/r18_s4.yaml")
+    parser.add_argument("--optimizer", type=str, default="./configs/optimizers/base_optimizer.yaml")
     
-    if cfg['gpu'] is not None:
-        print("Use GPU: {} for training".format(cfg['gpu']))
+    parser.add_argument("--num-workers", default=4, type=int, help="Number of workers used in dataloading")
+    parser.add_argument("--save-folder", default="./weights", type=str, help="Where you save weights")
+    parser.add_argument('--device', default='cuda', help='device to use for training / testing')
+    parser.add_argument("--seed", default=7777, type=int)
+
+    # distributed training parameters
+    parser.add_argument('--dist_url', default='env://', help='url used to set up distributed training')
+    return parser.parse_args()
+
+def train(args):
+    utils.ddp.init_distributed_mode(args)
+    
+    print(args)
+    
+    device = torch.device(args.device)
+    
+    seed = args.seed + utils.ddp.get_rank()
+    setup_seed(seed)
         
-    if cfg['distributed']:
-        if cfg['dist_url']=='env://' and cfg['rank']==-1:
-            cfg['rank']=int(os.environ["RANK"])
-        if cfg['multiprocessing_distributed']:
-            # gpu = 0,1,2,...,ngpus_per_node-1
-            print("gpu는",gpu)
-            cfg['rank']=cfg['rank']*ngpus_per_node + gpu
-        # 내용1-2: init_process_group 선언
-        torch.distributed.init_process_group(backend=cfg['dist_backend'],init_method=cfg['dist_url'],
-                                            world_size=cfg['world_size'],rank=cfg['rank'])
-    if cfg['resume']:
-        checkpoint = torch.load(cfg['resume_model'])
-        if 'seed' in checkpoint:
-            seed = checkpoint['seed']
-        else:
-            seed = int(time.time()) if cfg['seed'] == -1 else cfg['seed']
-    else:
-        seed = int(time.time()) if cfg['seed'] == -1 else cfg['seed']
-    seed_init_fn(seed) 
-    if not os.path.exists(cfg['model_save']):
-        os.makedirs(cfg['model_save'])
+    
+    
+    # if FLAGS.resume:
+    #     checkpoint = torch.load(FLAGS.resume_model)
+    #     if 'seed' in checkpoint:
+    #         seed = checkpoint['seed']
+    #     else:
+    #         seed = int(time.time()) if FLAGS.seed == -1 else FLAGS.seed
+    # else:
+    #     seed = int(time.time()) if FLAGS.seed == -1 else FLAGS.seed
+    # seed_init_fn(seed) 
+    
+    if not os.path.exists(FLAGS.model_save):
+        os.makedirs(FLAGS.model_save)
     tf.compat.v1.disable_eager_execution()
-    tb_writter = tf.compat.v1.summary.FileWriter(cfg['model_save'])
-    logger = setup_logger('train_log', os.path.join(cfg['model_save'], 'log.txt'))
-    for key, value in cfg.items():
+    tb_writter = tf.compat.v1.summary.FileWriter(FLAGS.model_save)
+    logger = setup_logger('train_log', os.path.join(FLAGS.model_save, 'log.txt'))
+    for key, value in vars(FLAGS).items():
         logger.info(key + ':' + str(value))
     Train_stage = 'PoseNet_only'
-    network = HSPose(cfg,Train_stage)
-    param_list = network.build_params(training_stage_freeze=[])
-    # network = network.to(device)
-    
-    if cfg["distributed"]:
-        if cfg["gpu"] is not None:
-            torch.cuda.set_device(cfg["gpu"])
-            network.cuda(cfg["gpu"])
-            cfg["batch_size"] = int(cfg["batch_size"]/ngpus_per_node)
-            cfg["num_workers"] = int((cfg["num_workers"]+ngpus_per_node-1)/ngpus_per_node)
-            network = torch.nn.parallel.DistributedDataParallel(network,device_ids=[cfg["gpu"]],find_unused_parameters=True)
-        else:
-            network.cuda()
-            network = torch.nn.parallel.DistributedDataParallel(network,find_unused_parameters=True)
-    elif cfg["gpu"] is not None:
-        torch.cuda.set_device(cfg["gpu"])
-        network = network.cuda(cfg["gpu"])
+    network = HSPose(Train_stage)
+    network = network.to(args.device)
+    train_dataset = PoseDataset(source=FLAGS.dataset, mode='train',
+                            data_dir=FLAGS.dataset_dir, per_obj=FLAGS.per_obj)
+    if args.distributed:
+        network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(network)
+        network = torch.nn.parallel.DistributedDataParallel(network, device_ids=[args.gpu])
+        model_without_ddp = network.module
         
-    train_steps = cfg["train_steps"]
+    if args.distributed:
+        sampler_train = torch.utils.data.DistributedSampler(
+                train_dataset, num_replicas=utils.ddp.get_world_size(), rank=utils.ddp.get_rank(), shuffle=True
+            )
+        
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=FLAGS.batch_size,
+                                                num_workers=FLAGS.num_workers,
+                                                sampler=sampler_train,
+                                                pin_memory=True,
+                                                prefetch_factor = 4,
+                                                worker_init_fn =seed_worker,
+                                                shuffle=True )    
+        
+    train_steps = FLAGS.train_steps    
     #  build optimizer
-    optimizer = build_optimizer(param_list,cfg)
+    param_list = network.build_params(training_stage_freeze=[])
+    optimizer = build_optimizer(param_list)
     optimizer.zero_grad()   # first clear the grad
-    scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"], cfg)
+    scheduler = build_lr_rate(optimizer, total_iters=train_steps * FLAGS.total_epoch // FLAGS.accumulate)
     # resume or not
     s_epoch = 0
-    if cfg["resume"]:
-        # checkpoint = torch.load(FLAGS.resume_model)
-        network.load_state_dict(checkpoint['posenet_state_dict'])
-        s_epoch = checkpoint['epoch'] + 1
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        scheduler.load_state_dict(checkpoint['scheduler'])
-        print("Checkpoint loaded:", checkpoint.keys())
+    # if FLAGS.resume:
+    #     # checkpoint = torch.load(FLAGS.resume_model)
+    #     network.load_state_dict(checkpoint['posenet_state_dict'])
+    #     s_epoch = checkpoint['epoch'] + 1
+    #     optimizer.load_state_dict(checkpoint['optimizer'])
+    #     scheduler.load_state_dict(checkpoint['scheduler'])
+    #     print("Checkpoint loaded:", checkpoint.keys())
 
 
     # build dataset annd dataloader
-    train_dataset = PoseDataset(cfg,source=cfg["dataset"], mode='train',
-                                data_dir=cfg["dataset_dir"], per_obj=cfg["per_obj"])
-    
-    
-    if cfg["distributed"]:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    else:
-        train_sampler = None
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=cfg["batch_size"],
-                                                   num_workers=cfg["num_workers"], pin_memory=True,
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=FLAGS.batch_size,
+                                                   num_workers=FLAGS.num_workers, pin_memory=True,
                                                    prefetch_factor = 4,
                                                    worker_init_fn =seed_worker,
-                                                   shuffle=(train_sampler is None),
-                                                   sampler=train_sampler)
+                                                   shuffle=True )
     network.train()
     global_step = train_steps * s_epoch  # record the number iteration
-    for epoch in range(s_epoch, cfg["total_epoch"]):
-        if cfg["distributed"]:
-            train_sampler.set_epoch(epoch)
+    for epoch in range(s_epoch, FLAGS.total_epoch):
         i = 0
-        for data in tqdm(train_dataloader, desc=f'Training {epoch}/{cfg["total_epoch"]}', dynamic_ncols=True):
-            # torch.cuda.synchronize()
+        for data in tqdm(train_dataloader, desc=f'Training {epoch}/{FLAGS.total_epoch}', dynamic_ncols=True):
             output_dict, loss_dict \
                 = network(
                           obj_id=data['cat_id'].to(device), 
@@ -176,7 +155,7 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 global_step += 1
                 continue
             # backward
-            if global_step % cfg["accumulate"] == 0:
+            if global_step % FLAGS.accumulate == 0:
                 total_loss.backward()
                 torch.nn.utils.clip_grad_norm_(network.parameters(), 5)
                 optimizer.step()
@@ -186,12 +165,12 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 total_loss.backward()
                 torch.nn.utils.clip_grad_norm_(network.parameters(), 5)
             global_step += 1
-            if i % cfg["log_every"] == 0:
+            if i % FLAGS.log_every == 0:
                 write_to_summary(tb_writter, optimizer, total_loss, fsnet_loss, prop_loss, recon_loss, global_step)
             i += 1
 
         # save model
-        if (epoch + 1) % cfg["save_every"] == 0 or (epoch + 1) == cfg["total_epoch"]:
+        if (epoch + 1) % FLAGS.save_every == 0 or (epoch + 1) == FLAGS.total_epoch:
             torch.save(
                 {
                 'seed': seed,
@@ -200,8 +179,8 @@ def main_worker(gpu,ngpus_per_node,cfg):
                 'scheduler': scheduler.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 },
-                '{0}/model_{1:02d}.pth'.format(cfg["model_save"], epoch))
-        # torch.cuda.empty_cache()
+                '{0}/model_{1:02d}.pth'.format(FLAGS.model_save, epoch))
+        torch.cuda.empty_cache()
 
 def write_to_summary(writter, optimizer, total_loss, fsnet_loss, prop_loss, recon_loss, global_step):
     summary = Summary(
@@ -236,4 +215,6 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 if __name__ == "__main__":
-    train()
+    args = parse_args()
+    os.makedirs(args.save_folder, exist_ok=True)
+    train(args)

@@ -9,8 +9,9 @@ FLAGS = flags.FLAGS  # can control the weight of each term here
 
 
 class prop_rot_loss(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(prop_rot_loss, self).__init__()
+        self.cfg = cfg
         self.loss_func = nn.L1Loss()
 
     def forward(self, namelist, pred_list, gt_list, sym):
@@ -26,7 +27,7 @@ class prop_rot_loss(nn.Module):
             #                                                                        sym]
             # for idx in range(len(t_list)):
             #     torch.save(t_list[idx], f"{my_folder}/prop_pm_tensor{idx}.pt")
-            loss_list["Prop_pm"] = FLAGS.prop_pm_w * self.prop_point_matching_loss(gt_list['Points'],
+            loss_list["Prop_pm"] = self.cfg["prop_pm_w"] * self.prop_point_matching_loss(gt_list['Points'],
                                                                                    pred_list['Rot1'],
                                                                                    pred_list['Rot1_f'],
                                                                                    pred_list['Rot2'],
@@ -37,10 +38,10 @@ class prop_rot_loss(nn.Module):
                                                                                    sym)
 
         if "Prop_r_reg" in namelist:
-            loss_list["Prop_r_reg"] = FLAGS.prop_r_reg_w * self.prop_rot_reg_loss(pred_list['Rot1_f'],
+            loss_list["Prop_r_reg"] = self.cfg["prop_r_reg_w"] * self.prop_rot_reg_loss(pred_list['Rot1_f'],
                                                                                   pred_list['Rot2_f'])
 
-        if "Prop_sym" in namelist and (FLAGS.prop_sym_w > 0):
+        if "Prop_sym" in namelist and (self.cfg["prop_sym_w"] > 0):
             # my_folder = './data/tmp_data'
             # t_list = [gt_list['Points'], pred_list['Recon'], pred_list['Rot1'], pred_list['Rot2'],
             #                                                           pred_list['Tran'],
@@ -58,8 +59,8 @@ class prop_rot_loss(nn.Module):
                                                                       gt_list['R'],
                                                                       gt_list['T'],
                                                                       sym)
-            loss_list["Prop_sym_recon"] = FLAGS.prop_sym_w * Prop_sym_recon
-            loss_list["Prop_sym_rt"] = FLAGS.prop_sym_w * Prop_sym_rt
+            loss_list["Prop_sym_recon"] = self.cfg["prop_sym_w"] * Prop_sym_recon
+            loss_list["Prop_sym_rt"] = self.cfg["prop_sym_w"] * Prop_sym_rt
         else:
             loss_list["Prop_occ"] = 0.0
         return loss_list

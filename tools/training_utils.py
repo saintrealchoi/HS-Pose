@@ -10,24 +10,24 @@ from tools.solver_utils import build_lr_scheduler, build_optimizer_with_params
 # important parameters used here
 # total_iters: total_epoch x iteration per epoch
 
-def build_lr_rate(optimizer, total_iters):
+def build_lr_rate(optimizer, total_iters,tmp_cfg):
     # build cfg from flags
     cfg = dict(
         SOLVER=dict(
-            IMS_PER_BATCH=FLAGS.batch_size,
-            TOTAL_EPOCHS=FLAGS.total_epoch,
-            LR_SCHEDULER_NAME=FLAGS.lr_scheduler_name,
+            IMS_PER_BATCH=tmp_cfg["batch_size"],
+            TOTAL_EPOCHS=tmp_cfg["total_epoch"],
+            LR_SCHEDULER_NAME=tmp_cfg["lr_scheduler_name"],
             REL_STEPS=(0.5, 0.75),
-            ANNEAL_METHOD=FLAGS.anneal_method,  # "cosine"
-            ANNEAL_POINT=FLAGS.anneal_point,
+            ANNEAL_METHOD=tmp_cfg["anneal_method"],  # "cosine"
+            ANNEAL_POINT=tmp_cfg["anneal_point"],
             # REL_STEPS=(0.3125, 0.625, 0.9375),
-            OPTIMIZER_CFG=dict(type=FLAGS.optimizer_type, lr=FLAGS.lr, weight_decay=0),
-            WEIGHT_DECAY=FLAGS.weight_decay,
-            WARMUP_FACTOR=FLAGS.warmup_factor,
-            WARMUP_ITERS=FLAGS.warmup_iters,
-            WARMUP_METHOD=FLAGS.warmup_method,
-            GAMMA=FLAGS.gamma,
-            POLY_POWER=FLAGS.poly_power,
+            OPTIMIZER_CFG=dict(type=tmp_cfg["optimizer_type"], lr=tmp_cfg["lr"], weight_decay=0),
+            WEIGHT_DECAY=tmp_cfg["weight_decay"],
+            WARMUP_FACTOR=tmp_cfg["warmup_factor"],
+            WARMUP_ITERS=tmp_cfg["warmup_iters"],
+            WARMUP_METHOD=tmp_cfg["warmup_method"],
+            GAMMA=tmp_cfg["gamma"],
+            POLY_POWER=tmp_cfg["poly_power"],
         ),
     )
     cfg = Config(cfg)
@@ -35,20 +35,20 @@ def build_lr_rate(optimizer, total_iters):
     return scheduler
 
 
-def build_optimizer(params):
+def build_optimizer(params,tmp_cfg):
     # build cfg from flags
     cfg = dict(
         SOLVER=dict(
-            IMS_PER_BATCH=FLAGS.batch_size,
-            TOTAL_EPOCHS=FLAGS.total_epoch,
-            LR_SCHEDULER_NAME=FLAGS.lr_scheduler_name,
-            ANNEAL_METHOD=FLAGS.anneal_method,  # "cosine"
-            ANNEAL_POINT=FLAGS.anneal_point,
+            IMS_PER_BATCH=tmp_cfg["batch_size"],
+            TOTAL_EPOCHS=tmp_cfg["total_epoch"],
+            LR_SCHEDULER_NAME=tmp_cfg["lr_scheduler_name"],
+            ANNEAL_METHOD=tmp_cfg["anneal_method"],  # "cosine"
+            ANNEAL_POINT=tmp_cfg["anneal_point"],
             # REL_STEPS=(0.3125, 0.625, 0.9375),
-            OPTIMIZER_CFG=dict(type=FLAGS.optimizer_type, lr=FLAGS.lr, weight_decay=0),
-            WEIGHT_DECAY=FLAGS.weight_decay,
-            WARMUP_FACTOR=FLAGS.warmup_factor,
-            WARMUP_ITERS=FLAGS.warmup_iters,
+            OPTIMIZER_CFG=dict(type=tmp_cfg["optimizer_type"], lr=tmp_cfg["lr"], weight_decay=0),
+            WEIGHT_DECAY=tmp_cfg["weight_decay"],
+            WARMUP_FACTOR=tmp_cfg["warmup_factor"],
+            WARMUP_ITERS=tmp_cfg["warmup_iters"],
         ),
     )
     cfg = Config(cfg)

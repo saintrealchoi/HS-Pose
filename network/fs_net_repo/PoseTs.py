@@ -12,6 +12,7 @@ FLAGS = flags.FLAGS
 class Pose_Ts(nn.Module):
     def __init__(self,cfg):
         super(Pose_Ts, self).__init__()
+        self.cfg = cfg
         self.f = self.cfg["feat_c_ts"]
         self.k = self.cfg["Ts_c"]
 

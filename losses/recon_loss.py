@@ -10,8 +10,9 @@ from tools.geom_utils import batch_dot
 FLAGS = flags.FLAGS  # can control the weight of each term here
 
 class recon_6face_loss(nn.Module):
-    def __init__(self):
+    def __init__(self,cfg):
         super(recon_6face_loss, self).__init__()
+        self.cfg = cfg
         self.loss_func = nn.L1Loss()
 
     def forward(self, name_list, pred_list, gt_list, sym, obj_ids, save_path=None):
@@ -28,8 +29,8 @@ class recon_6face_loss(nn.Module):
                                             gt_list['Size'],
                                             gt_list['Mean_shape'],
                                             sym, obj_ids)
-            loss_list['recon_per_p'] = FLAGS.recon_n_w * res_normal + FLAGS.recon_d_w * res_dis
-            loss_list['recon_p_f'] = FLAGS.recon_f_w * res_f
+            loss_list['recon_per_p'] = self.cfg["recon_n_w"] * res_normal + self.cfg["recon_d_w"] * res_dis
+            loss_list['recon_p_f'] = self.cfg["recon_f_w"] * res_f
         if 'Point_voting' in name_list:
             F_c_detach = pred_list['F_c'].detach()
             recon_point_vote, recon_point_r, recon_point_t, recon_point_s, recon_point_self = self.cal_recon_loss_vote(
@@ -48,17 +49,17 @@ class recon_6face_loss(nn.Module):
                                             gt_list['Size'],
                                             gt_list['Mean_shape'],
                                             sym, obj_ids, save_path)
-            loss_list['recon_point_vote'] = FLAGS.recon_v_w * recon_point_vote
-            loss_list['recon_point_r'] = FLAGS.recon_bb_r_w * recon_point_r
-            loss_list['recon_point_t'] = FLAGS.recon_bb_t_w * recon_point_t
-            loss_list['recon_point_s'] = FLAGS.recon_bb_s_w * recon_point_s
-            loss_list['recon_point_self'] = FLAGS.recon_bb_self_w * recon_point_self
+            loss_list['recon_point_vote'] = self.cfg["recon_v_w"] * recon_point_vote
+            loss_list['recon_point_r'] = self.cfg["recon_bb_r_w"] * recon_point_r
+            loss_list['recon_point_t'] = self.cfg["recon_bb_t_w"] * recon_point_t
+            loss_list['recon_point_s'] = self.cfg["recon_bb_s_w"] * recon_point_s
+            loss_list['recon_point_self'] = self.cfg["recon_bb_self_w"] * recon_point_self
         if 'Point_sampling' in name_list:
-            loss_list['recon_point_sample'] = FLAGS.recon_s_w * self.cal_recon_loss_sample(pred_list['Pc_sk'],
+            loss_list['recon_point_sample'] = self.cfg["recon_s_w"] * self.cal_recon_loss_sample(pred_list['Pc_sk'],
                                                                                            pred_list['F_c'])
 
         if 'Point_c_reg' in name_list:
-            loss_list['recon_point_c_reg'] = FLAGS.recon_c_w * self.cal_recon_loss_direct(pred_list['F_c'])
+            loss_list['recon_point_c_reg'] = self.cfg["recon_c_w"] * self.cal_recon_loss_direct(pred_list['F_c'])
         return loss_list
 
     def cal_recon_loss_direct(self, face_n, face_d, face_c):

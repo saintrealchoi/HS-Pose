@@ -4,7 +4,7 @@
 # Datasets
 obj_c: 6
 dataset: Real
-dataset_dir: ./data/NOCS
+dataset_dir: ./data
 detection_dir: ./data/segmentation_results
 per_obj: ''
 
@@ -44,7 +44,7 @@ sample_method: basic
 train: 1
 train_stage: PoseNet_only
 device: cuda:0
-num_workers: 20
+num_workers: 8
 seed: -1
 batch_size: 16
 total_epoch: 150
@@ -78,7 +78,7 @@ prop_sym_w: 1.0
 prop_r_reg_w: 1.0
 
 # Training parameters
-lr: 1e-4
+lr: 0.0001
 lr_pose: 1.0
 lr_decay_iters: 50
 lr_scheduler_name: flat_and_anneal
@@ -95,7 +95,7 @@ poly_power: 0.9
 # Save parameters
 save_every: 10
 log_every: 100
-model_save: output/models/distr
+model_save: output/models/rgb-test/
 resume: 0
 resume_model: ./output/models/model_149.pth
 resume_point: 0
@@ -107,7 +107,7 @@ eval_inference_only: 0
 # Distributed Learning
 multiprocessing_distributed: 1
 world_size: 1
-gpu_num: 4,5
+gpu_num: 4,5,6,7
 rank : 0
 dist_url: tcp://localhost:10001
 dist_backend: nccl
