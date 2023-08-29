@@ -8,6 +8,8 @@ from absl import app
 from config.config import *
 from tools.training_utils import build_lr_rate, build_optimizer
 from network.HSPose import HSPose 
+import argparse
+import yaml
 FLAGS = flags.FLAGS
 from datasets.load_data import PoseDataset
 from tqdm import tqdm
@@ -19,31 +21,75 @@ import tensorflow as tf
 from tools.eval_utils import setup_logger
 from tensorflow.compat.v1 import Summary
 
+# for distributed training
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.optim as optim
+
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+
+    # initialize the process group
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+
+def cleanup():
+    dist.destroy_process_group()
+
 torch.autograd.set_detect_anomaly(True)
 device = 'cuda'
 
-def train(argv):
-    if FLAGS.resume:
-        checkpoint = torch.load(FLAGS.resume_model)
+def train():
+    with open('/home/sungjin/HS-Pose/config/config.yaml') as f:
+        cfg = yaml.safe_load(f)
+    os.environ["CUDA_VISIBLE_DEVICES"] = cfg['gpu_num']
+    ngpus_per_node = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
+    cfg['distributed'] = cfg['world_size'] > 1 or cfg['multiprocessing_distributed']
+    if cfg['multiprocessing_distributed']:
+        cfg['world_size']=ngpus_per_node*cfg['world_size']
+        mp.spawn(main_worker,nprocs=ngpus_per_node,args=(ngpus_per_node,cfg))
+    else:
+        main_worker(cfg['gpu_num'], ngpus_per_node, cfg)
+
+def main_worker(gpu,ngpus_per_node,cfg):
+    print(gpu, ngpus_per_node)
+    cfg['gpu'] = gpu
+    
+    if cfg['gpu'] is not None:
+        print("Use GPU: {} for training".format(cfg['gpu']))
+        
+    if cfg['distributed']:
+        if cfg['dist_url']=='env://' and cfg['rank']==-1:
+            cfg['rank']=int(os.environ["RANK"])
+        if cfg['multiprocessing_distributed']:
+            # gpu = 0,1,2,...,ngpus_per_node-1
+            print("gpu는",gpu)
+            cfg['rank']=cfg['rank']*ngpus_per_node + gpu
+        # 내용1-2: init_process_group 선언
+        torch.distributed.init_process_group(backend=cfg['dist_backend'],init_method=cfg['dist_url'],
+                                            world_size=cfg['world_size'],rank=cfg['rank'])
+    if cfg['resume']:
+        checkpoint = torch.load(cfg['resume_model'])
         if 'seed' in checkpoint:
             seed = checkpoint['seed']
         else:
-            seed = int(time.time()) if FLAGS.seed == -1 else FLAGS.seed
+            seed = int(time.time()) if cfg['seed'] == -1 else cfg['seed']
     else:
-        seed = int(time.time()) if FLAGS.seed == -1 else FLAGS.seed
+        seed = int(time.time()) if cfg['seed'] == -1 else cfg['seed']
     seed_init_fn(seed) 
-    if not os.path.exists(FLAGS.model_save):
-        os.makedirs(FLAGS.model_save)
+    if not os.path.exists(cfg['model_save']):
+        os.makedirs(cfg['model_save'])
     tf.compat.v1.disable_eager_execution()
-    tb_writter = tf.compat.v1.summary.FileWriter(FLAGS.model_save)
-    logger = setup_logger('train_log', os.path.join(FLAGS.model_save, 'log.txt'))
-    for key, value in vars(FLAGS).items():
+    tb_writter = tf.compat.v1.summary.FileWriter(cfg['model_save'])
+    logger = setup_logger('train_log', os.path.join(cfg['model_save'], 'log.txt'))
+    for key, value in cfg.items():
         logger.info(key + ':' + str(value))
     Train_stage = 'PoseNet_only'
-    network = HSPose(Train_stage)
+    network = HSPose(cfg,Train_stage)
     network = network.to(device)
     
-    train_steps = FLAGS.train_steps    
+    train_steps = cfg["train_steps"]
     #  build optimizer
     param_list = network.build_params(training_stage_freeze=[])
     optimizer = build_optimizer(param_list)
@@ -167,4 +213,4 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 if __name__ == "__main__":
-    app.run(train)
+    train()

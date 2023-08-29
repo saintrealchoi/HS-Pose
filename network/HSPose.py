@@ -23,11 +23,12 @@ from tools.lynne_lib.vision_utils import show_point_cloud
 
 
 class HSPose(nn.Module):
-    def __init__(self, train_stage):
+    def __init__(self, cfg, train_stage):
         super(HSPose, self).__init__()
         self.rgbnet = PSPNet()
         self.posenet = PoseNet9D()
         self.train_stage = train_stage
+        self.cfg = cfg
         self.loss_recon = recon_6face_loss()
         self.loss_fs_net = fs_net_loss()
         self.loss_geo = geo_transform_loss()
@@ -43,7 +44,7 @@ class HSPose(nn.Module):
 
         if PC is None:
             if self.train_stage == 'PoseNet_only':
-                FLAGS.sample_method = 'basic'
+                self.cfg["sample_method"] = 'basic'
                 bs = depth.shape[0]
                 H, W = depth.shape[2], depth.shape[3]
                 sketch = torch.rand([bs, 6, H, W], device=depth.device).detach()
@@ -70,7 +71,7 @@ class HSPose(nn.Module):
             # pcl = np.concatenate([np.tile(pcl, (n_pts // total_pts_num, 1)), pcl[:n_pts % total_pts_num]], axis=0)
         PC = torch.cat((PC,pc_feature),dim=-1)
         PC = PC.detach()
-        if FLAGS.train:
+        if self.cfg["train"]:
             with torch.no_grad():
                 PC_da, gt_R_da, gt_t_da, gt_s_da = self.data_augment(PC, gt_R, gt_t, gt_s, mean_shape, sym, aug_bb,
                                                                      aug_rt_t, aug_rt_r, model_point, nocs_scale, obj_id)
@@ -250,21 +251,21 @@ class HSPose(nn.Module):
         bs = PC.shape[0]
 
         prob_bb = torch.rand((bs, 1), device=PC.device)
-        flag = prob_bb < FLAGS.aug_bb_pro
+        flag = prob_bb < self.cfg["aug_bb_pro"]
         PC, gt_s, model_point = aug_bb_with_flag(PC, gt_R, gt_t, gt_s, model_point, mean_shape, sym, aug_bb, flag)
 
         prob_rt = torch.rand((bs, 1), device=PC.device)
-        flag = prob_rt < FLAGS.aug_rt_pro
+        flag = prob_rt < self.cfg["aug_rt_pro"]
         PC, gt_R, gt_t = aug_rt_with_flag(PC, gt_R, gt_t, aug_rt_t, aug_rt_r, flag)
 
         # only do bc for mug and bowl
         prob_bc = torch.rand((bs, 1), device=PC.device)
-        flag = torch.logical_and(prob_bc < FLAGS.aug_bc_pro, torch.logical_or(obj_ids== 5, obj_ids == 1).unsqueeze(-1))
+        flag = torch.logical_and(prob_bc < self.cfg["aug_bc_pro"], torch.logical_or(obj_ids== 5, obj_ids == 1).unsqueeze(-1))
         PC, gt_s, _, _ = aug_3D_bc_with_flag(PC, gt_R, gt_t, gt_s, model_point, nocs_scale, mean_shape, flag)
 
         prob_pc = torch.rand((bs, 1), device=PC.device)
-        flag = prob_pc < FLAGS.aug_pc_pro
-        PC, _ = aug_pc_with_flag(PC, gt_t, flag, FLAGS.aug_pc_r)
+        flag = prob_pc < self.cfg["aug_pc_pro"]
+        PC, _ = aug_pc_with_flag(PC, gt_t, flag, self.cfg["aug_pc_r"])
 
         if check_points:
             pc_reproj = torch.matmul(gt_R.transpose(-1, -2), (PC - gt_t.unsqueeze(-2)).transpose(-1, -2)).transpose(-1, -2)
@@ -287,7 +288,7 @@ class HSPose(nn.Module):
         params_lr_list.append(
             {
                 "params": filter(lambda p: p.requires_grad, self.posenet.parameters()),
-                "lr": float(FLAGS.lr) * FLAGS.lr_pose,
+                "lr": float(self.cfg["lr)"]) * self.cfg["lr_pose"],
             }
         )
 

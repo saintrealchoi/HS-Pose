@@ -124,4 +124,7 @@ flags.DEFINE_integer('resume_point', 0, 'the epoch to continue the training')
 flags.DEFINE_integer('eval_seed', -1, 'evaluation seed for reproducibility')
 flags.DEFINE_integer('eval_inference_only', 0, 'inference without evaluation')
 
-
+# Distributed Learning
+flags.DEFINE_integer('multiprocessing_distributed', 1, 'flag for distributed learning')
+flags.DEFINE_integer('world_size', 1, 'the number of node for distributed learning')
+flags.DEFINE_string('gpu_num', '4,5,6,7', 'gpu number for distributed learning')
