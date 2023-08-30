@@ -46,7 +46,7 @@ train_stage: PoseNet_only
 device: cuda:0
 num_workers: 8
 seed: -1
-batch_size: 64
+batch_size: 16
 total_epoch: 150
 train_steps: 1500
 accumulate: 1
@@ -105,9 +105,9 @@ eval_seed: -1
 eval_inference_only: 0
 
 # Distributed Learning
-multiprocessing_distributed: 1
+multiprocessing_distributed: 0
 world_size: 1
-gpu_num: 4,5,6,7
+gpu_num: 0,
 rank : 0
 dist_url: tcp://localhost:10001
 dist_backend: nccl

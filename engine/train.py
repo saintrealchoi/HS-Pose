@@ -39,9 +39,8 @@ def cleanup():
 
 torch.autograd.set_detect_anomaly(True)
 device = 'cuda'
-
 def train():
-    with open('/home/sungjin/HS-Pose/config/config.yaml') as f:
+    with open('./config/config.yaml') as f:
         cfg = yaml.safe_load(f)
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg['gpu_num']
     ngpus_per_node = len(os.environ["CUDA_VISIBLE_DEVICES"].split(','))
@@ -50,7 +49,7 @@ def train():
         cfg['world_size']=ngpus_per_node*cfg['world_size']
         mp.spawn(main_worker,nprocs=ngpus_per_node,args=(ngpus_per_node,cfg))
     else:
-        main_worker(cfg['gpu_num'], ngpus_per_node, cfg)
+        main_worker(0, ngpus_per_node, cfg)
 
 def main_worker(gpu,ngpus_per_node,cfg):
     print(gpu, ngpus_per_node)
