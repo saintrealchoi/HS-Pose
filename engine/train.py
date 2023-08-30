@@ -147,6 +147,8 @@ def main_worker(gpu,ngpus_per_node,cfg):
                           obj_id=data['cat_id'].to(device), 
                           PC=data['pcl_in'].to(device),
                           rgb=data['rgb_in'].to(device),
+                          depth=data['depth_in'].to(device),
+                          depth_mask=data['depth_mask'].to(device),
                           depth_valid = data['depth_valid'].to(device),
                           sample_idx = data['sample_idx'].to(device),
                           gt_R=data['rotation'].to(device), 
@@ -165,9 +167,11 @@ def main_worker(gpu,ngpus_per_node,cfg):
             recon_loss = loss_dict['recon_loss']
             geo_loss = loss_dict['geo_loss']
             prop_loss = loss_dict['prop_loss']
+            depth_loss = loss_dict['depth_loss']
 
             total_loss = sum(fsnet_loss.values()) + sum(recon_loss.values()) \
                             + sum(geo_loss.values()) + sum(prop_loss.values()) \
+                                +sum(depth_loss.values())
 
             if math.isnan(total_loss):
                 print('Found nan in total loss')

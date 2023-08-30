@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import absl.flags as flags
 
-FLAGS = flags.FLAGS
+from torch.nn import functional as F
 
 from network.fs_net_repo.PoseNet9D import PoseNet9D
 from network.PSPNet import PSPNet
@@ -25,7 +25,7 @@ from tools.lynne_lib.vision_utils import show_point_cloud
 class HSPose(nn.Module):
     def __init__(self, cfg, train_stage):
         super(HSPose, self).__init__()
-        self.rgbnet = PSPNet()
+        self.rgbnet = PSPNet(n_classes=1)
         self.posenet = PoseNet9D(cfg)
         self.train_stage = train_stage
         self.cfg = cfg
@@ -36,7 +36,7 @@ class HSPose(nn.Module):
         self.name_fs_list, self.name_recon_list, \
             self.name_geo_list, self.name_prop_list = control_loss(self.train_stage)
 
-    def forward(self, PC=None, depth=None, obj_id=None, camK=None,
+    def forward(self, PC=None, depth=None, depth_mask=None, obj_id=None, camK=None,
                 gt_R=None, gt_t=None, gt_s=None, mean_shape=None, gt_2D=None, sym=None, aug_bb=None,
                 aug_rt_t=None, aug_rt_r=None, def_mask=None, model_point=None, nocs_scale=None, do_loss=False,
                 rgb=None, depth_valid=None, sample_idx=None):
@@ -58,7 +58,7 @@ class HSPose(nn.Module):
         sketch = None
         
         rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
-        feature, _, _ = self.rgbnet(rgb)
+        feature, depth_output, _ = self.rgbnet(rgb)
         bs = feature.shape[0]
         feature = feature.view(bs,256,256*256).permute(0,2,1)
         pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
@@ -192,11 +192,16 @@ class HSPose(nn.Module):
 
             geo_loss = self.loss_geo(self.name_geo_list, pred_geo_list, gt_geo_list, sym)
 
+            depth_output=depth_mask*depth_output
+            depth=depth_mask*depth.squeeze(dim=1)
+            depth_loss = F.cross_entropy(depth_output,depth.squeeze(dim=1),reduction="mean")*self.cfg["depth_w"]
+
             loss_dict = {}
             loss_dict['fsnet_loss'] = fsnet_loss
             loss_dict['recon_loss'] = recon_loss
             loss_dict['geo_loss'] = geo_loss
             loss_dict['prop_loss'] = prop_loss
+            loss_dict['depth_loss'] = depth_loss
         else:
             return output_dict
         # torch.cuda.synchronize()

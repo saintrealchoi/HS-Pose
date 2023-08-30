@@ -47,7 +47,7 @@ class PSPUpsample(nn.Module):
 
 class PSPNet(nn.Module):
     def __init__(self, n_classes=6, sizes=(1, 2, 3, 6), psp_size=512, deep_features_size=256, backend='resnet34',
-                 pretrained=True, ):
+                 pretrained=True):
         super().__init__()
         self.feats = getattr(extractors, backend)(pretrained)
         self.psp = PSPModule(psp_size, 1024, sizes)
@@ -61,8 +61,8 @@ class PSPNet(nn.Module):
         self.up_5 = PSPUpsample(256, 256)
 
         self.final = nn.Sequential(
-            nn.Conv2d(256, n_classes, kernel_size=1, stride=1),
-            # nn.LogSoftmax()
+            nn.Conv2d(256, n_classes, kernel_size=1),
+            nn.LogSoftmax()
         )
 
         self.classifier = nn.Sequential(
@@ -73,25 +73,24 @@ class PSPNet(nn.Module):
 
     def forward(self, x):
         f, class_f = self.feats(x) 
-        p1 = self.psp(f)
-        p1 = self.drop_1(p1)
+        p = self.psp(f)
+        p = self.drop_1(p)
 
-        p2 = self.up_1(p1)
-        p2 = self.drop_2(p2)
+        p = self.up_1(p)
+        p = self.drop_2(p)
 
-        p3 = self.up_2(p2)
-        p3 = self.drop_2(p3)
+        p = self.up_2(p)
+        p = self.drop_2(p)
 
-        p4 = self.up_3(p3)
-        p4 = self.drop_2(p4)
+        p = self.up_3(p)
+        p = self.drop_2(p)
         
-        p5 = self.up_4(p4)
-        p5 = self.drop_2(p5)
+        p = self.up_4(p)
+        p = self.drop_2(p)
         
-        p6 = self.up_5(p5)
-        p6 = self.drop_2(p6)
+        p = self.up_5(p)
+        p = self.drop_2(p)
         
         auxiliary = F.adaptive_max_pool2d(input=class_f, output_size=(1, 1)).view(-1, class_f.size(1))
-        
-        return p6, self.final(F.relu(p6)).squeeze(dim=1), self.classifier(auxiliary)
-        # return p, self.final(p), self.classifier(auxiliary)
+
+        return p, self.final(p), self.classifier(auxiliary)

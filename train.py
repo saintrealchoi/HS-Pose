@@ -124,9 +124,10 @@ def train(args):
         for data in tqdm(train_dataloader, desc=f'Training {epoch}/{FLAGS.total_epoch}', dynamic_ncols=True):
             output_dict, loss_dict \
                 = network(
-                          obj_id=data['cat_id'].to(device), 
+                          obj_id=data['cat_id'].to(device),
                           PC=data['pcl_in'].to(device),
                           rgb=data['rgb_in'].to(device),
+                          depth=data['depth_in'].to(device),
                           depth_valid = data['depth_valid'].to(device),
                           sample_idx = data['sample_idx'].to(device),
                           gt_R=data['rotation'].to(device), 
@@ -145,6 +146,7 @@ def train(args):
             recon_loss = loss_dict['recon_loss']
             geo_loss = loss_dict['geo_loss']
             prop_loss = loss_dict['prop_loss']
+            depth_loss = loss_dict['depth_loss']
 
             total_loss = sum(fsnet_loss.values()) + sum(recon_loss.values()) \
                             + sum(geo_loss.values()) + sum(prop_loss.values()) \

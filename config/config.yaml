@@ -76,6 +76,7 @@ geo_f_w: 0.1
 prop_pm_w: 2.0
 prop_sym_w: 1.0
 prop_r_reg_w: 1.0
+depth_w: 0.001
 
 # Training parameters
 lr: 0.0001

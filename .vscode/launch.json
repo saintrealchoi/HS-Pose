@@ -9,14 +9,6 @@
       "type": "python",
       "request": "launch",
       "module": "engine.train",
-      "args": [
-        "--model_save",
-        "output/models/rgb-test/",
-        "--detection_dir",
-        "./data/segmentation_results",
-        "--dataset_dir",
-        "./data"
-      ],
       "justMyCode": false
     },
     {
