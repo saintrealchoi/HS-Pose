@@ -1,0 +1,113 @@
+# Import statements
+# No need for import statements in YAML
+
+# Datasets
+obj_c: 6
+dataset: Real
+dataset_dir: ./data
+detection_dir: ./data/segmentation_results
+per_obj: ''
+
+# Dynamic zoom in
+DZI_PAD_SCALE: 1.5
+DZI_TYPE: uniform
+DZI_SCALE_RATIO: 0.25
+DZI_SHIFT_RATIO: 0.25
+
+# Input parameters
+img_size: 256
+
+# Data augmentation parameters
+roi_mask_r: 3
+roi_mask_pro: 0.5
+aug_pc_pro: 0.2
+aug_pc_r: 0.2
+aug_rt_pro: 0.3
+aug_bb_pro: 0.3
+aug_bc_pro: 0.3
+
+# Pose network
+feat_c_R: 1545
+R_c: 4
+feat_c_ts: 1548
+Ts_c: 6
+feat_face: 768
+face_recon_c: 30
+gcn_sup_num: 7
+gcn_n_num: 20
+
+# Point selection
+random_points: 1028
+sample_method: basic
+
+# Train parameters
+train: 0
+train_stage: PoseNet_only
+device: cuda:0
+num_workers: 8
+seed: -1
+batch_size: 64
+total_epoch: 150
+train_steps: 1500
+accumulate: 1
+
+# Test parameters
+fsnet_loss_type: l1
+rot_1_w: 8.0
+rot_2_w: 8.0
+rot_regular: 4.0
+tran_w: 8.0
+size_w: 8.0
+recon_w: 8.0
+r_con_w: 1.0
+recon_n_w: 3.0
+recon_d_w: 3.0
+recon_v_w: 1.0
+recon_s_w: 0.3
+recon_f_w: 1.0
+recon_bb_r_w: 1.0
+recon_bb_t_w: 1.0
+recon_bb_s_w: 1.0
+recon_bb_self_w: 1.0
+mask_w: 1.0
+geo_p_w: 1.0
+geo_s_w: 10.0
+geo_f_w: 0.1
+prop_pm_w: 2.0
+prop_sym_w: 1.0
+prop_r_reg_w: 1.0
+
+# Training parameters
+lr: 0.0001
+lr_pose: 1.0
+lr_decay_iters: 50
+lr_scheduler_name: flat_and_anneal
+anneal_method: cosine
+anneal_point: 0.72
+optimizer_type: Ranger
+weight_decay: 0.0
+warmup_factor: 0.001
+warmup_iters: 250
+warmup_method: linear
+gamma: 0.1
+poly_power: 0.9
+
+# Save parameters
+save_every: 10
+log_every: 100
+model_save: output/models/depth-ddp/model_79
+resume: 1
+resume_model: ./output/models/depth-ddp/model_79.pth
+resume_point: 0
+
+# Evaluation parameters
+eval_seed: 1677483078
+eval_inference_only: 0
+
+# Distributed Learning
+multiprocessing_distributed: 0
+world_size: 1
+gpu_num: 1,
+rank : 0
+dist_url: tcp://localhost:10001
+dist_backend: nccl
