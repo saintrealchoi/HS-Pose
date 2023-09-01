@@ -10,7 +10,7 @@ from tools.training_utils import build_lr_rate, build_optimizer
 from network.HSPose import HSPose 
 import argparse
 import yaml
-FLAGS = flags.FLAGS
+
 from datasets.load_data import PoseDataset
 from tqdm import tqdm
 import time
@@ -27,18 +27,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.optim as optim
 
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
-
-    # initialize the process group
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-
-def cleanup():
-    dist.destroy_process_group()
-
 torch.autograd.set_detect_anomaly(True)
-device = 'cuda'
+
 def train():
     with open('./config/config.yaml') as f:
         cfg = yaml.safe_load(f)
@@ -52,8 +42,8 @@ def train():
         main_worker(0, ngpus_per_node, cfg)
 
 def main_worker(gpu,ngpus_per_node,cfg):
-    print(gpu, ngpus_per_node)
     cfg['gpu'] = gpu
+    device = cfg["device"]
     
     if cfg['gpu'] is not None:
         print("Use GPU: {} for training".format(cfg['gpu']))
@@ -63,11 +53,12 @@ def main_worker(gpu,ngpus_per_node,cfg):
             cfg['rank']=int(os.environ["RANK"])
         if cfg['multiprocessing_distributed']:
             # gpu = 0,1,2,...,ngpus_per_node-1
-            print("gpu는",gpu)
             cfg['rank']=cfg['rank']*ngpus_per_node + gpu
-        # 내용1-2: init_process_group 선언
         torch.distributed.init_process_group(backend=cfg['dist_backend'],init_method=cfg['dist_url'],
                                             world_size=cfg['world_size'],rank=cfg['rank'])
+        
+    if torch.distributed.get_rank() == 0:
+        print("RANK: {}, WORLD_SIZE: {}".format(cfg['rank'],cfg['world_size']))
     if cfg['resume']:
         checkpoint = torch.load(cfg['resume_model'])
         if 'seed' in checkpoint:
@@ -87,18 +78,20 @@ def main_worker(gpu,ngpus_per_node,cfg):
     Train_stage = 'PoseNet_only'
     network = HSPose(cfg,Train_stage)
     param_list = network.build_params(training_stage_freeze=[])
-    # network = network.to(device)
     
     if cfg["distributed"]:
         if cfg["gpu"] is not None:
             torch.cuda.set_device(cfg["gpu"])
+            torch.distributed.barrier()
             network.cuda(cfg["gpu"])
+            network = torch.nn.SyncBatchNorm.convert_sync_batchnorm(network) # batch norm mode convert
             cfg["batch_size"] = int(cfg["batch_size"]/ngpus_per_node)
             cfg["num_workers"] = int((cfg["num_workers"]+ngpus_per_node-1)/ngpus_per_node)
-            network = torch.nn.parallel.DistributedDataParallel(network,device_ids=[cfg["gpu"]],find_unused_parameters=True)
+            network = DDP(network,device_ids=[cfg["gpu"]],find_unused_parameters=True)
         else:
             network.cuda()
-            network = torch.nn.parallel.DistributedDataParallel(network,find_unused_parameters=True)
+            network = DDP(network,find_unused_parameters=True)
+            
     elif cfg["gpu"] is not None:
         torch.cuda.set_device(cfg["gpu"])
         network = network.cuda(cfg["gpu"])
@@ -122,7 +115,6 @@ def main_worker(gpu,ngpus_per_node,cfg):
     # build dataset annd dataloader
     train_dataset = PoseDataset(cfg,source=cfg["dataset"], mode='train',
                                 data_dir=cfg["dataset_dir"], per_obj=cfg["per_obj"])
-    
     
     if cfg["distributed"]:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)

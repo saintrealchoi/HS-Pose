@@ -43,7 +43,7 @@ sample_method: basic
 # Train parameters
 train: 1
 train_stage: PoseNet_only
-device: cuda:0
+device: cuda
 num_workers: 8
 seed: -1
 batch_size: 16
