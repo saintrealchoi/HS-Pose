@@ -18,7 +18,7 @@ from evaluation.eval_utils_v1 import compute_degree_cm_mAP
 from tqdm import tqdm
 
 import open3d as o3d
-
+import yaml
 def seed_init_fn(seed):
     np.random.seed(seed)
     random.seed(seed)
@@ -27,24 +27,26 @@ def seed_init_fn(seed):
 
 device = 'cuda'
 
-def evaluate(argv):
-    if FLAGS.eval_seed == -1:
+def evaluate():
+    with open('./config/val_config.yaml') as f:
+        cfg = yaml.safe_load(f)
+    if cfg["eval_seed"] == -1:
         seed = int(time.time())
     else:
-        seed = FLAGS.eval_seed
+        seed = cfg["eval_seed"]
     seed_init_fn(seed)
-    if not os.path.exists(FLAGS.model_save):
-        os.makedirs(FLAGS.model_save)
+    if not os.path.exists(cfg["model_save"]):
+        os.makedirs(cfg["model_save"])
     tf.compat.v1.disable_eager_execution()
-    logger = setup_logger('eval_log', os.path.join(FLAGS.model_save, 'log_eval.txt'))
+    logger = setup_logger('eval_log', os.path.join(cfg["model_save"], 'log_eval.txt'))
     Train_stage = 'PoseNet_only'
-    FLAGS.train = False
+    cfg["train"] = False
 
-    model_name = os.path.basename(FLAGS.resume_model).split('.')[0]
+    model_name = os.path.basename(cfg["resume_model"]).split('.')[0]
     # build dataset annd dataloader
 
-    val_dataset = PoseDataset(source=FLAGS.dataset, mode='test')
-    output_path = os.path.join(FLAGS.model_save, f'eval_result_{model_name}')
+    val_dataset = PoseDataset(cfg,source=cfg["dataset"], mode='test')
+    output_path = os.path.join(cfg["model_save"], f'eval_result_{model_name}')
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     import pickle
@@ -57,11 +59,11 @@ def evaluate(argv):
             pred_results = pickle.load(file)
         img_count = 1
     else:
-        network = HSPose(Train_stage)
+        network = HSPose(cfg,Train_stage)
         network = network.to(device)
 
-        if FLAGS.resume:
-            state_dict = torch.load(FLAGS.resume_model)['posenet_state_dict']
+        if cfg["resume"]:
+            state_dict = torch.load(cfg["resume_model"])['posenet_state_dict']
             unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
             
             # why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
@@ -72,6 +74,9 @@ def evaluate(argv):
             #             state_dict[rename_keys[i]] = state_dict.pop(why_keys[i])
                      
                 ##########################################################
+            for key in list(state_dict.keys()):
+                new_key = '.'.join(key.split('.')[1:])
+                state_dict[new_key] = state_dict.pop(key)
             for key in list(state_dict.keys()):
                 for net_to_delete in unnecessary_nets:
                     if key.startswith(net_to_delete):
@@ -145,7 +150,7 @@ def evaluate(argv):
         with open(pred_result_save_path, 'wb') as file:
             pickle.dump(pred_results, file)
         print('inference time:', t_inference / img_count)
-    if FLAGS.eval_inference_only:
+    if cfg["eval_inference_only"]:
         import sys
         sys.exit()
 
@@ -156,8 +161,8 @@ def evaluate(argv):
     # iou_aps, pose_aps, iou_acc, pose_acc = compute_mAP(pred_results, output_path, degree_thres_list, shift_thres_list,
     #                                                  iou_thres_list, iou_pose_thres=0.1, use_matches_for_pose=True,)
     synset_names = ['BG'] + ['bottle', 'bowl', 'camera', 'can', 'laptop', 'mug']
-    if FLAGS.per_obj in synset_names:
-        idx = synset_names.index(FLAGS.per_obj)
+    if cfg["per_obj"] in synset_names:
+        idx = synset_names.index(cfg["per_obj"])
     else:
         idx = -1
     iou_aps, pose_aps = compute_degree_cm_mAP(pred_results, synset_names, output_path, degree_thres_list,
@@ -176,7 +181,7 @@ def evaluate(argv):
 
     messages = []
 
-    if FLAGS.per_obj in synset_names:
+    if cfg["per_obj"] in synset_names:
         messages.append('Evaluation Seed: {}'.format(seed))
         messages.append('mAP:')
         messages.append('3D IoU at 25: {:.1f}'.format(iou_aps[idx, iou_25_idx] * 100))
@@ -236,4 +241,4 @@ def evaluate(argv):
 
 
 if __name__ == "__main__":
-    app.run(evaluate)
+    evaluate()

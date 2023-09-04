@@ -4,7 +4,6 @@ import numpy as np
 import _pickle as cPickle
 from config.config import *
 from datasets.data_augmentation import get_rotation
-FLAGS = flags.FLAGS
 
 import torch
 import torch.utils.data as data
@@ -13,7 +12,7 @@ from tools.dataset_utils import *
 from evaluation.eval_utils_v1 import get_3d_bbox, transform_coordinates_3d, compute_3d_iou_new
 
 class PoseDataset(data.Dataset):
-    def __init__(self, source=None, mode='test',
+    def __init__(self, cfg, source=None, mode='test',
                  n_pts=1024, img_size=256):
         '''
         :param source: 'CAMERA' or 'Real' or 'CAMERA+Real'
@@ -24,11 +23,12 @@ class PoseDataset(data.Dataset):
         '''
         self.source = source
         self.mode = mode
-        data_dir = FLAGS.dataset_dir
+        self.cfg = cfg
+        data_dir = self.cfg["dataset_dir"]
         self.data_dir = data_dir
         self.n_pts = n_pts
         self.img_size = img_size
-        self.detection_dir = FLAGS.detection_dir
+        self.detection_dir = self.cfg["detection_dir"]
 
         assert source in ['CAMERA', 'Real', 'CAMERA+Real']
         assert mode in ['train', 'test']
@@ -75,7 +75,7 @@ class PoseDataset(data.Dataset):
         if source == 'CAMERA':
             self.id2cat_name = self.id2cat_name_CAMERA
 
-        per_obj = FLAGS.per_obj
+        per_obj = self.cfg["per_obj"]
         self.per_obj = per_obj
         self.per_obj_id = None
         # only test one object
@@ -232,22 +232,22 @@ class PoseDataset(data.Dataset):
 
             # roi_coord_2d ----------------------------------------------------
             roi_coord_2d = crop_resize_by_warp_affine(
-                coord_2d, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+                coord_2d, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
             ).transpose(2, 0, 1)
             mask_target = mask.copy().astype(np.float)
             # depth[mask_target == 0.0] = 0.0
             roi_rgb = crop_resize_by_warp_affine(
-                rgb, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+                rgb, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
             )
             roi_rgb = np.expand_dims(roi_rgb, axis=0)
             
             roi_mask = crop_resize_by_warp_affine(
-                mask_target, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+                mask_target, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
             )
             roi_mask = np.expand_dims(roi_mask, axis=0)
 
             roi_depth = crop_resize_by_warp_affine(
-                depth, bbox_center, scale, FLAGS.img_size, interpolation=cv2.INTER_NEAREST
+                depth, bbox_center, scale, self.cfg["img_size"], interpolation=cv2.INTER_NEAREST
             )
             roi_depth = np.expand_dims(roi_depth, axis=0)
 
@@ -262,7 +262,7 @@ class PoseDataset(data.Dataset):
             pcl_in, valid = self._depth_bgr_to_pcl(roi_depth, roi_rgb, out_camK, roi_coord_2d, roi_mask)
             pcl_in = pcl_in / 1000.0
             pcl_in[:,3:] = pcl_in[:,3:]* 5.0
-            pcl_in,indices = self._sample_points(pcl_in, FLAGS.random_points)
+            pcl_in,indices = self._sample_points(pcl_in, self.cfg["random_points"])
 
             # occupancy canonical
             # sym
