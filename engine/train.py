@@ -57,8 +57,8 @@ def main_worker(gpu,ngpus_per_node,cfg):
         torch.distributed.init_process_group(backend=cfg['dist_backend'],init_method=cfg['dist_url'],
                                             world_size=cfg['world_size'],rank=cfg['rank'])
         
-    if torch.distributed.get_rank() == 0:
-        print("RANK: {}, WORLD_SIZE: {}".format(cfg['rank'],cfg['world_size']))
+        if torch.distributed.get_rank() == 0:
+            print("RANK: {}, WORLD_SIZE: {}".format(cfg['rank'],cfg['world_size']))
     if cfg['resume']:
         checkpoint = torch.load(cfg['resume_model'])
         if 'seed' in checkpoint:
@@ -78,6 +78,7 @@ def main_worker(gpu,ngpus_per_node,cfg):
     Train_stage = 'PoseNet_only'
     network = HSPose(cfg,Train_stage)
     param_list = network.build_params(training_stage_freeze=[])
+    train_steps = cfg["train_steps"]
     
     if cfg["distributed"]:
         if cfg["gpu"] is not None:
@@ -88,6 +89,8 @@ def main_worker(gpu,ngpus_per_node,cfg):
             cfg["batch_size"] = int(cfg["batch_size"]/ngpus_per_node)
             cfg["num_workers"] = int((cfg["num_workers"]+ngpus_per_node-1)/ngpus_per_node)
             network = DDP(network,device_ids=[cfg["gpu"]],find_unused_parameters=True)
+            scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"] // ngpus_per_node, cfg)
+            
         else:
             network.cuda()
             network = DDP(network,find_unused_parameters=True)
@@ -95,12 +98,12 @@ def main_worker(gpu,ngpus_per_node,cfg):
     elif cfg["gpu"] is not None:
         torch.cuda.set_device(cfg["gpu"])
         network = network.cuda(cfg["gpu"])
+        scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"], cfg)
         
-    train_steps = cfg["train_steps"]
+        
     #  build optimizer
     optimizer = build_optimizer(param_list,cfg)
     optimizer.zero_grad()   # first clear the grad
-    scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"], cfg)
     # resume or not
     s_epoch = 0
     if cfg["resume"]:
