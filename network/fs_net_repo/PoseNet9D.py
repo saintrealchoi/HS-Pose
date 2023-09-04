@@ -27,15 +27,15 @@ class PoseNet9D(nn.Module):
         points = points[:,:,:3]
         recon, face, feat = self.face_recon(points - points.mean(dim=1, keepdim=True), obj_id, bgr)
 
-        if self.cfg["train"]:
-            recon = recon + points.mean(dim=1, keepdim=True)
-            # handle face
-            face_normal = face[:, :, :18].view(bs, p_num, 6, 3)  # normal
-            face_normal = face_normal / torch.norm(face_normal, dim=-1, keepdim=True)  # bs x nunm x 6 x 3
-            face_dis = face[:, :, 18:24]  # bs x num x  6
-            face_f = F.sigmoid(face[:, :, 24:])  # bs x num x 6
-        else:
-            face_normal, face_dis, face_f, recon = [None]*4
+        # if self.cfg["train"]:
+        recon = recon + points.mean(dim=1, keepdim=True)
+        # handle face
+        face_normal = face[:, :, :18].view(bs, p_num, 6, 3)  # normal
+        face_normal = face_normal / torch.norm(face_normal, dim=-1, keepdim=True)  # bs x nunm x 6 x 3
+        face_dis = face[:, :, 18:24]  # bs x num x  6
+        face_f = F.sigmoid(face[:, :, 24:])  # bs x num x 6
+        # else:
+        #     face_normal, face_dis, face_f, recon = [None]*4
         #  rotation
         green_R_vec = self.rot_green(feat.permute(0, 2, 1))  # b x 4
         red_R_vec = self.rot_red(feat.permute(0, 2, 1))   # b x 4

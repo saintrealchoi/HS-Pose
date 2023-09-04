@@ -25,11 +25,15 @@ def seed_init_fn(seed):
     torch.manual_seed(seed)
     return
 
-device = 'cuda'
 
 def evaluate():
+    
     with open('./config/val_config.yaml') as f:
         cfg = yaml.safe_load(f)
+        
+    os.environ["CUDA_VISIBLE_DEVICES"] = cfg['gpu_num']
+    device = 'cuda'
+        
     if cfg["eval_seed"] == -1:
         seed = int(time.time())
     else:
@@ -64,7 +68,7 @@ def evaluate():
 
         if cfg["resume"]:
             state_dict = torch.load(cfg["resume_model"])['posenet_state_dict']
-            unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
+            # unnecessary_nets = ['posenet.face_recon.conv1d_block', 'posenet.face_recon.face_head', 'posenet.face_recon.recon_head']
             
             # why_keys = ["posenet.face_recon.conv_0.resconv.weight", "posenet.face_recon.conv_1.resconv.weight", "posenet.face_recon.conv_2.resconv.weight", "posenet.face_recon.conv_3.resconv.weight", "posenet.face_recon.conv_4.resconv.weight"]
             # rename_keys = ["posenet.face_recon.conv_0.STE_layer.weight", "posenet.face_recon.conv_1.STE_layer.weight", "posenet.face_recon.conv_2.STE_layer.weight", "posenet.face_recon.conv_3.STE_layer.weight", "posenet.face_recon.conv_4.STE_layer.weight"]
@@ -78,9 +82,9 @@ def evaluate():
                 new_key = '.'.join(key.split('.')[1:])
                 state_dict[new_key] = state_dict.pop(key)
             for key in list(state_dict.keys()):
-                for net_to_delete in unnecessary_nets:
-                    if key.startswith(net_to_delete):
-                        state_dict.pop(key)
+                # for net_to_delete in unnecessary_nets:
+                #     if key.startswith(net_to_delete):
+                #         state_dict.pop(key)
                 #########################################################
                 # Adapt weight name to match old code version. 
                 # Not necessary for weights trained using newest code. 
@@ -119,12 +123,12 @@ def evaluate():
                           sample_idx = data['sample_idx'].to(device)
                           )
                 
-            # SEE = 5
+            SEE = 3
             
-            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            # o3d.visualization.draw_geometries([pcd])
-            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE].detach().cpu().numpy())
-            # o3d.visualization.draw_geometries([pcd])
+            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy())
+            o3d.visualization.draw_geometries([pcd])
+            pcd.points = o3d.utility.Vector3dVector(output_dict['recon'][SEE][:,:3].detach().cpu().numpy())
+            o3d.visualization.draw_geometries([pcd])
             
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()

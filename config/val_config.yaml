@@ -46,7 +46,7 @@ train_stage: PoseNet_only
 device: cuda:0
 num_workers: 8
 seed: -1
-batch_size: 64
+batch_size: 16
 total_epoch: 150
 train_steps: 1500
 accumulate: 1
@@ -95,9 +95,9 @@ poly_power: 0.9
 # Save parameters
 save_every: 10
 log_every: 100
-model_save: output/models/depth-ddp/model_79
+model_save: /home/choisj/Downloads/depth_model_149
 resume: 1
-resume_model: ./output/models/depth-ddp/model_79.pth
+resume_model: /home/choisj/Downloads/depth_model_149.pth
 resume_point: 0
 
 # Evaluation parameters

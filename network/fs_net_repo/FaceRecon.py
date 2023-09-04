@@ -35,38 +35,37 @@ class FaceRecon(nn.Module):
         dim_fuse = sum([128, 128, 256, 256, 512, self.cfg["obj_c"], 259]) # TODO:
         # 16: total 6 categories, 256 is global feature
 
-        if self.cfg["train"]:
-            self.conv1d_block = nn.Sequential(
-                nn.Conv1d(dim_fuse, 512, 1),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(512, 512, 1),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(512, 256, 1),
-                nn.BatchNorm1d(256),
-                nn.ReLU(inplace=True),
-            )
+        self.conv1d_block = nn.Sequential(
+            nn.Conv1d(dim_fuse, 512, 1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(512, 512, 1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(512, 256, 1),
+            nn.BatchNorm1d(256),
+            nn.ReLU(inplace=True),
+        )
 
-            self.recon_head = nn.Sequential(
-                nn.Conv1d(256, 128, 1),
-                nn.BatchNorm1d(128),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(128, self.recon_num, 1),
-            )
+        self.recon_head = nn.Sequential(
+            nn.Conv1d(256, 128, 1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(128, self.recon_num, 1),
+        )
 
-            self.face_head = nn.Sequential(
-                nn.Conv1d(self.cfg["feat_face"] + 3, 512, 1),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(512, 256, 1),
-                nn.BatchNorm1d(256),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(256, 128, 1),
-                nn.BatchNorm1d(128),
-                nn.ReLU(inplace=True),
-                nn.Conv1d(128, self.face_recon_num, 1),  # Relu or not?
-            )
+        self.face_head = nn.Sequential(
+            nn.Conv1d(self.cfg["feat_face"] + 3, 512, 1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(512, 256, 1),
+            nn.BatchNorm1d(256),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(256, 128, 1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(128, self.face_recon_num, 1),  # Relu or not?
+        )
 
     def forward(self,
                 vertices: "tensor (bs, vetice_num, 3)",
@@ -113,21 +112,21 @@ class FaceRecon(nn.Module):
         feat_face_re = feat_face.repeat(1, feat.shape[1], 1)
         '''
 
-        if self.cfg["train"]:
-            feat_face_re = f_global.view(bs, 1, f_global.shape[1]).repeat(1, feat.shape[1], 1).permute(0, 2, 1)
-            # feat is the extracted per pixel level feature
+        # if self.cfg["train"]:
+        feat_face_re = f_global.view(bs, 1, f_global.shape[1]).repeat(1, feat.shape[1], 1).permute(0, 2, 1)
+        # feat is the extracted per pixel level feature
 
-            conv1d_input = feat.permute(0, 2, 1)  # (bs, fuse_ch, vertice_num)
-            conv1d_out = self.conv1d_block(conv1d_input)
+        conv1d_input = feat.permute(0, 2, 1)  # (bs, fuse_ch, vertice_num)
+        conv1d_out = self.conv1d_block(conv1d_input)
 
-            recon = self.recon_head(conv1d_out)
-            # average pooling for face prediction
-            feat_face_in = torch.cat([feat_face_re, conv1d_out, vertices.permute(0, 2, 1)], dim=1)
-            face = self.face_head(feat_face_in)
-            return recon.permute(0, 2, 1), face.permute(0, 2, 1), feat
-        else:
-            recon, face = None, None
-            return recon, face, feat
+        recon = self.recon_head(conv1d_out)
+        # average pooling for face prediction
+        feat_face_in = torch.cat([feat_face_re, conv1d_out, vertices.permute(0, 2, 1)], dim=1)
+        face = self.face_head(feat_face_in)
+        return recon.permute(0, 2, 1), face.permute(0, 2, 1), feat
+        # else:
+        #     recon, face = None, None
+        #     return recon, face, feat
 
 
 def main(argv):

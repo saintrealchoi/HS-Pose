@@ -12,6 +12,7 @@ import argparse
 import yaml
 
 from datasets.load_data import PoseDataset
+from evaluation.load_data_eval import PoseDataset as PoseDataset_val
 from tqdm import tqdm
 import time
 import numpy as np
@@ -79,6 +80,9 @@ def main_worker(gpu,ngpus_per_node,cfg):
     network = HSPose(cfg,Train_stage)
     param_list = network.build_params(training_stage_freeze=[])
     train_steps = cfg["train_steps"]
+    #  build optimizer
+    optimizer = build_optimizer(param_list,cfg)
+    optimizer.zero_grad()   # first clear the grad
     
     if cfg["distributed"]:
         if cfg["gpu"] is not None:
@@ -90,7 +94,6 @@ def main_worker(gpu,ngpus_per_node,cfg):
             cfg["num_workers"] = int((cfg["num_workers"]+ngpus_per_node-1)/ngpus_per_node)
             network = DDP(network,device_ids=[cfg["gpu"]],find_unused_parameters=True)
             scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"] // ngpus_per_node, cfg)
-            
         else:
             network.cuda()
             network = DDP(network,find_unused_parameters=True)
@@ -100,10 +103,6 @@ def main_worker(gpu,ngpus_per_node,cfg):
         network = network.cuda(cfg["gpu"])
         scheduler = build_lr_rate(optimizer, train_steps * cfg["total_epoch"] // cfg["accumulate"], cfg)
         
-        
-    #  build optimizer
-    optimizer = build_optimizer(param_list,cfg)
-    optimizer.zero_grad()   # first clear the grad
     # resume or not
     s_epoch = 0
     if cfg["resume"]:
