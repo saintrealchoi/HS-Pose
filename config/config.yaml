@@ -7,6 +7,10 @@ dataset: Real
 dataset_dir: ./data
 detection_dir: ./data/segmentation_results
 per_obj: ''
+backbone: ResNet50
+depth_pretrained_dir: ./pretrained
+max_depth: 10
+min_depth: 0.001
 
 # Dynamic zoom in
 DZI_PAD_SCALE: 1.5
@@ -76,8 +80,9 @@ geo_f_w: 0.1
 prop_pm_w: 2.0
 prop_sym_w: 1.0
 prop_r_reg_w: 1.0
-depth_w: 0.001
-
+depth_w: 1.0
+chamfer_w: 0.1
+minmax_w: 0.1
 # Training parameters
 lr: 0.0001
 lr_pose: 1.0

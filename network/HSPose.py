@@ -9,6 +9,7 @@ from torch.nn import functional as F
 
 from network.fs_net_repo.PoseNet9D import PoseNet9D
 from network.PSPNet import PSPNet
+from network.DepthNet import DANet
 # from network.PSPNET_ANOTHER import PSPNet
 from network.point_sample.pc_sample import PC_sample
 from datasets.data_augmentation import defor_3D_pc
@@ -17,6 +18,7 @@ from losses.fs_net_loss import fs_net_loss
 from losses.recon_loss import recon_6face_loss
 from losses.geometry_loss import geo_transform_loss
 from losses.prop_loss import prop_rot_loss
+from losses.SI_log_loss import SILogLoss, MinmaxLoss, BinsChamferLoss
 from engine.organize_loss import control_loss
 from tools.training_utils import get_gt_v
 from tools.lynne_lib.vision_utils import show_point_cloud
@@ -25,14 +27,18 @@ from tools.lynne_lib.vision_utils import show_point_cloud
 class HSPose(nn.Module):
     def __init__(self, cfg, train_stage):
         super(HSPose, self).__init__()
-        self.rgbnet = PSPNet(n_classes=1)
+        self.cfg = cfg
+        # self.rgbnet = PSPNet(n_classes=1)
+        self.depthnet = DANet(cfg)
         self.posenet = PoseNet9D(cfg)
         self.train_stage = train_stage
-        self.cfg = cfg
         self.loss_recon = recon_6face_loss(cfg)
         self.loss_fs_net = fs_net_loss(cfg)
         self.loss_geo = geo_transform_loss(cfg)
         self.loss_prop = prop_rot_loss(cfg)
+        self.loss_depth = SILogLoss()
+        self.loss_bins = BinsChamferLoss()
+        self.loss_minmax = MinmaxLoss()
         self.name_fs_list, self.name_recon_list, \
             self.name_geo_list, self.name_prop_list = control_loss(self.train_stage)
 
@@ -58,7 +64,11 @@ class HSPose(nn.Module):
         sketch = None
         
         rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
-        feature, depth_output, _ = self.rgbnet(rgb)
+        # feature, depth_output, _ = self.rgbnet(rgb)
+        feature, pred_depth, bin_edges = self.depthnet(rgb)
+        depth = depth/1000
+        gt_depth = self.adjust_gt(depth,pred_depth)
+        gt_depth = [gt_depth[0]/1000]
         bs = feature.shape[0]
         feature = feature.view(bs,256,256*256).permute(0,2,1)
         pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
@@ -192,20 +202,28 @@ class HSPose(nn.Module):
 
             geo_loss = self.loss_geo(self.name_geo_list, pred_geo_list, gt_geo_list, sym)
 
-            depth_output=depth_mask*depth_output
-            depth=depth_mask*depth.squeeze(dim=1)
-            depth_loss = F.cross_entropy(depth_output,depth.squeeze(dim=1),reduction="mean")*self.cfg["depth_w"]
-
+            depth_loss = self.loss_depth(pred_depth,gt_depth)
+            chamfer_loss = self.loss_bins(bin_edges, depth)
+            minmax_loss = self.loss_minmax(bin_edges, depth)
             loss_dict = {}
             loss_dict['fsnet_loss'] = fsnet_loss
             loss_dict['recon_loss'] = recon_loss
             loss_dict['geo_loss'] = geo_loss
             loss_dict['prop_loss'] = prop_loss
             loss_dict['depth_loss'] = depth_loss
+            loss_dict['chamfer_loss'] = chamfer_loss
+            loss_dict['minmax_loss'] = minmax_loss
         else:
             return output_dict
         # torch.cuda.synchronize()
         return output_dict, loss_dict
+
+    def adjust_gt(self, gt_depth, pred_depth):
+        adjusted_gt = []
+        for each_depth in pred_depth:
+            adjusted_gt.append(torch.nn.functional.interpolate(gt_depth, size=[each_depth.size(2), each_depth.size(3)],
+                                    mode='bilinear', align_corners=True))
+        return adjusted_gt
 
     def data_augment(self, PC, gt_R, gt_t, gt_s, mean_shape, sym, aug_bb, aug_rt_t, aug_rt_r,
                          model_point, nocs_scale, obj_ids, check_points=False):
