@@ -199,9 +199,9 @@ class HSPose(nn.Module):
             }
 
             geo_loss = self.loss_geo(self.name_geo_list, pred_geo_list, gt_geo_list, sym)
-            depth_loss = self.loss_depth(pred_depth,gt_depth)
-            chamfer_loss = self.loss_chamfer(bin_edges, depth)
-            minmax_loss = self.loss_minmax(bin_edges, depth)
+            depth_loss = FLAGS.depth_w*self.loss_depth(pred_depth,gt_depth)
+            chamfer_loss = FLAGS.chamfer_w*self.loss_chamfer(bin_edges, depth)
+            minmax_loss = FLAGS.minmax_w*self.loss_minmax(bin_edges, depth)
 
             loss_dict = {}
             loss_dict['fsnet_loss'] = fsnet_loss

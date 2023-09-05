@@ -52,7 +52,7 @@ flags.DEFINE_string('device', 'cuda:0', '')
 # flags.DEFINE_string("train_gpu", '0', "gpu no. for training")
 flags.DEFINE_integer("num_workers", 16, "cpu cores for loading dataset")
 flags.DEFINE_integer("seed", -1, "random seed for reproducibility")
-flags.DEFINE_integer('batch_size', 32, '')
+flags.DEFINE_integer('batch_size', 8, '')
 flags.DEFINE_integer('total_epoch', 150, 'total epoches in training')
 flags.DEFINE_integer('train_steps', 750, 'number of batches in each epoch')  # batchsize is 8, then 3000
 #####################space is not enough, trade time for space####################
@@ -80,6 +80,9 @@ flags.DEFINE_float('recon_bb_r_w', 1.0, 'bbox r loss')
 flags.DEFINE_float('recon_bb_t_w', 1.0, 'bbox t loss')
 flags.DEFINE_float('recon_bb_s_w', 1.0, 'bbox s loss')
 flags.DEFINE_float('recon_bb_self_w', 1.0, 'bb self')
+flags.DEFINE_float('depth_w', 1.0, 'bb self')
+flags.DEFINE_float('chamfer_w', 0.1, 'bb self')
+flags.DEFINE_float('minmax_w', 0.1, 'bb self')
 
 
 flags.DEFINE_float('mask_w', 1.0, 'obj_mask_loss')
