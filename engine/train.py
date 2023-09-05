@@ -145,6 +145,7 @@ def write_to_summary(writter, optimizer, total_loss, depth_loss, chamfer_loss, m
             Summary.Value(tag='lr', simple_value=optimizer.param_groups[0]["lr"]),
             Summary.Value(tag='train_loss', simple_value=total_loss),
             Summary.Value(tag='depth_loss', simple_value=depth_loss),
+            Summary.Value(tag='chamfer_loss', simple_value=chamfer_loss),
             Summary.Value(tag='minmax_loss', simple_value=minmax_loss),
             Summary.Value(tag='rot_loss_1', simple_value=fsnet_loss['Rot1']),
             Summary.Value(tag='rot_loss_2', simple_value=fsnet_loss['Rot2']),

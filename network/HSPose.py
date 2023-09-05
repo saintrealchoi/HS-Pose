@@ -62,7 +62,7 @@ class HSPose(nn.Module):
         obj_mask = None
         sketch = None
         
-        rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
+        rgb = rgb.squeeze(dim=1).permute(0,3,1,2)
         feature, pred_depth, bin_edges = self.depthnet(rgb)
         depth = depth/1000.0
         gt_depth = self.adjust_gt(depth,pred_depth)

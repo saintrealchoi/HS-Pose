@@ -17,6 +17,7 @@ import torchvision.transforms as transforms
 from tools.eval_utils import load_depth, get_bbox
 from tools.dataset_utils import *
 
+resize = transforms.Resize(128)
 
 class PoseDataset(data.Dataset):
     def __init__(self, source=None, mode='train', data_dir=None,
@@ -290,10 +291,12 @@ class PoseDataset(data.Dataset):
         bb_aug, rt_aug_t, rt_aug_R = self.generate_aug_parameters()
 
         data_dict = {}
+        roi_depth = torch.as_tensor(roi_depth.astype(np.float32)).contiguous()
+        roi_depth = resize(roi_depth)
         data_dict['pcl_in'] = torch.as_tensor(pcl_in.astype(np.float32)).contiguous()
         data_dict['rgb_in'] = torch.as_tensor(roi_rgb.astype(np.float32)).contiguous()
         data_dict['depth_valid'] = torch.as_tensor(valid.astype(np.bool8)).contiguous()
-        data_dict['depth_in'] = torch.as_tensor(roi_depth.astype(np.float32)).contiguous()
+        data_dict['depth_in'] = roi_depth
         data_dict['sample_idx'] = torch.as_tensor(indices).contiguous()
         data_dict['cat_id'] = torch.as_tensor(cat_id, dtype=torch.float32).contiguous()
         data_dict['rotation'] = torch.as_tensor(rotation, dtype=torch.float32).contiguous()
