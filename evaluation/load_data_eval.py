@@ -204,6 +204,7 @@ class PoseDataset(data.Dataset):
         obj_valid_index = []
         point_clouds = []
         raw_rgb = []
+        raw_depth = []
         depth_valids = []
         pcl_indices = []
 
@@ -275,6 +276,7 @@ class PoseDataset(data.Dataset):
             obj_ids_0base.append(cat_id - 1)
             point_clouds.append(pcl_in)
             raw_rgb.append(roi_rgb)
+            raw_depth.append(roi_depth)
             depth_valids.append(valid)
             pcl_indices.append(indices)
 
@@ -291,6 +293,7 @@ class PoseDataset(data.Dataset):
         obj_ids_0base = np.array(obj_ids_0base)
         point_clouds = np.array(point_clouds)
         raw_rgb = np.array(raw_rgb)
+        raw_depth = np.array(raw_depth)
         depth_valids = np.array(depth_valids)
         pcl_indices = np.array(pcl_indices)
         data_dict = {}
@@ -300,6 +303,7 @@ class PoseDataset(data.Dataset):
         data_dict['mean_shape'] = torch.as_tensor(mean_shapes, dtype=torch.float32).contiguous()
         data_dict['pcl_in'] = torch.as_tensor(point_clouds.astype(np.float32)).contiguous()
         data_dict['rgb_in'] =torch.as_tensor(raw_rgb.astype(np.float32)).contiguous()
+        data_dict['depth_in'] =torch.as_tensor(raw_depth.astype(np.float32)).contiguous()
         data_dict['sample_idx'] = torch.as_tensor(pcl_indices).contiguous()
         data_dict['depth_valid'] = torch.as_tensor(depth_valids.astype(np.bool8)).contiguous()
         return data_dict, detection_dict, gts

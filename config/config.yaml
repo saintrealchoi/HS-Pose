@@ -50,7 +50,7 @@ train_stage: PoseNet_only
 device: cuda
 num_workers: 8
 seed: -1
-batch_size: 16
+batch_size: 64
 total_epoch: 150
 train_steps: 1500
 accumulate: 1
@@ -101,7 +101,7 @@ poly_power: 0.9
 # Save parameters
 save_every: 10
 log_every: 100
-model_save: output/models/rgb-test/
+model_save: output/models/depth-final-v2
 resume: 0
 resume_model: ./output/models/model_149.pth
 resume_point: 0
@@ -111,9 +111,9 @@ eval_seed: -1
 eval_inference_only: 0
 
 # Distributed Learning
-multiprocessing_distributed: 0
+multiprocessing_distributed: 1
 world_size: 1
-gpu_num: 0,
+gpu_num: 2,3,4,5
 rank : 0
 dist_url: tcp://localhost:10001
 dist_backend: nccl

@@ -119,16 +119,17 @@ def evaluate():
                           mean_shape=mean_shape,
                           sym=sym,
                           rgb = data['rgb_in'].to(device),
+                          depth=data['depth_in'].to(device),
                           depth_valid = data['depth_valid'].to(device),
                           sample_idx = data['sample_idx'].to(device)
                           )
                 
-            SEE = 3
+            # SEE = 3
             
-            pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
-            pcd.points = o3d.utility.Vector3dVector(output_dict['recon'][SEE][:,:3].detach().cpu().numpy())
-            o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(data['pcl_in'][SEE][:,:3].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
+            # pcd.points = o3d.utility.Vector3dVector(output_dict['recon'][SEE][:,:3].detach().cpu().numpy())
+            # o3d.visualization.draw_geometries([pcd])
             
             p_green_R_vec = output_dict['p_green_R'].detach()
             p_red_R_vec = output_dict['p_red_R'].detach()

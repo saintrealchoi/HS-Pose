@@ -7,6 +7,10 @@ dataset: Real
 dataset_dir: ./data
 detection_dir: ./data/segmentation_results
 per_obj: ''
+backbone: ResNet50
+depth_pretrained_dir: ./pretrained
+max_depth: 10
+min_depth: 0.001
 
 # Dynamic zoom in
 DZI_PAD_SCALE: 1.5
@@ -95,9 +99,9 @@ poly_power: 0.9
 # Save parameters
 save_every: 10
 log_every: 100
-model_save: /home/choisj/Downloads/depth_model_149
+model_save: /home/sungjin/git/HS-Pose/output/models/depth-final-v2/model_109
 resume: 1
-resume_model: /home/choisj/Downloads/depth_model_149.pth
+resume_model: /home/sungjin/git/HS-Pose/output/models/depth-final-v2/model_109.pth
 resume_point: 0
 
 # Evaluation parameters

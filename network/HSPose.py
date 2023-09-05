@@ -18,7 +18,7 @@ from losses.fs_net_loss import fs_net_loss
 from losses.recon_loss import recon_6face_loss
 from losses.geometry_loss import geo_transform_loss
 from losses.prop_loss import prop_rot_loss
-from losses.SI_log_loss import SILogLoss, MinmaxLoss, BinsChamferLoss
+from losses.SI_log_loss import SILogLoss, MinmaxLoss#, BinsChamferLoss
 from engine.organize_loss import control_loss
 from tools.training_utils import get_gt_v
 from tools.lynne_lib.vision_utils import show_point_cloud
@@ -37,7 +37,7 @@ class HSPose(nn.Module):
         self.loss_geo = geo_transform_loss(cfg)
         self.loss_prop = prop_rot_loss(cfg)
         self.loss_depth = SILogLoss()
-        self.loss_bins = BinsChamferLoss()
+        # self.loss_bins = BinsChamferLoss()
         self.loss_minmax = MinmaxLoss()
         self.name_fs_list, self.name_recon_list, \
             self.name_geo_list, self.name_prop_list = control_loss(self.train_stage)
@@ -68,7 +68,7 @@ class HSPose(nn.Module):
         feature, pred_depth, bin_edges = self.depthnet(rgb)
         depth = depth/1000
         gt_depth = self.adjust_gt(depth,pred_depth)
-        gt_depth = [gt_depth[0]/1000]
+        # gt_depth = [gt_depth[0]/1000]
         bs = feature.shape[0]
         feature = feature.view(bs,256,256*256).permute(0,2,1)
         pc_feature = torch.zeros((bs,1028,256)).to(PC.device)
@@ -203,7 +203,7 @@ class HSPose(nn.Module):
             geo_loss = self.loss_geo(self.name_geo_list, pred_geo_list, gt_geo_list, sym)
 
             depth_loss = self.loss_depth(pred_depth,gt_depth)
-            chamfer_loss = self.loss_bins(bin_edges, depth)
+            # chamfer_loss = self.loss_bins(bin_edges, depth)
             minmax_loss = self.loss_minmax(bin_edges, depth)
             loss_dict = {}
             loss_dict['fsnet_loss'] = fsnet_loss
@@ -211,7 +211,7 @@ class HSPose(nn.Module):
             loss_dict['geo_loss'] = geo_loss
             loss_dict['prop_loss'] = prop_loss
             loss_dict['depth_loss'] = depth_loss
-            loss_dict['chamfer_loss'] = chamfer_loss
+            # loss_dict['chamfer_loss'] = chamfer_loss
             loss_dict['minmax_loss'] = minmax_loss
         else:
             return output_dict
