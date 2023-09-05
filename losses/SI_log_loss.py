@@ -30,23 +30,23 @@ class SILogLoss(nn.Module):  # Main loss function used in AdaBins paper
 		total_loss=sum(losses)
 		return total_loss
 
-# class BinsChamferLoss(nn.Module):  # Bin centers regularizer used in AdaBins paper
-#     def __init__(self):
-#         super().__init__()
-#         self.name = "ChamferLoss"
+class BinsChamferLoss(nn.Module):  # Bin centers regularizer used in AdaBins paper
+    def __init__(self):
+        super().__init__()
+        self.name = "ChamferLoss"
 
-#     def forward(self, bins, target_depth_maps):
-#         bin_centers = 0.5 * (bins[:, 1:] + bins[:, :-1])
-#         n, p = bin_centers.shape
-#         input_points = bin_centers.view(n, p, 1)  # .shape = n, p, 1
-#         # n, c, h, w = target_depth_maps.shape
-#         target_points = target_depth_maps.flatten(1)  # n, hwc
-#         mask = target_points.ge(1e-3)  # only valid ground truth points
-#         target_points = [p[m] for p, m in zip(target_points, mask)]
-#         target_lengths = torch.Tensor([len(t) for t in target_points]).long().to(target_depth_maps.device)
-#         target_points = pad_sequence(target_points, batch_first=True).unsqueeze(2)  # .shape = n, T, 1
-#         loss, _ = chamfer_distance(x=input_points, y=target_points, y_lengths=target_lengths)
-#         return loss
+    def forward(self, bins, target_depth_maps):
+        bin_centers = 0.5 * (bins[:, 1:] + bins[:, :-1])
+        n, p = bin_centers.shape
+        input_points = bin_centers.view(n, p, 1)  # .shape = n, p, 1
+        # n, c, h, w = target_depth_maps.shape
+        target_points = target_depth_maps.flatten(1)  # n, hwc
+        mask = target_points.ge(1e-3)  # only valid ground truth points
+        target_points = [p[m] for p, m in zip(target_points, mask)]
+        target_lengths = torch.Tensor([len(t) for t in target_points]).long().to(target_depth_maps.device)
+        target_points = pad_sequence(target_points, batch_first=True).unsqueeze(2)  # .shape = n, T, 1
+        loss, _ = chamfer_distance(x=input_points, y=target_points, y_lengths=target_lengths)
+        return loss
 
 class MinmaxLoss(nn.Module):
 	def __init__(self):

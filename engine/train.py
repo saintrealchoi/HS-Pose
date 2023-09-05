@@ -99,11 +99,12 @@ def train(argv):
             geo_loss = loss_dict['geo_loss']
             prop_loss = loss_dict['prop_loss']
             depth_loss = loss_dict['depth_loss']
+            chamfer_loss = loss_dict['chamfer_loss']
             minmax_loss = loss_dict['minmax_loss']
 
             total_loss = sum(fsnet_loss.values()) + sum(recon_loss.values()) \
                             + sum(geo_loss.values()) + sum(prop_loss.values()) \
-                                + depth_loss + minmax_loss
+                                + depth_loss + chamfer_loss+ minmax_loss
 
             if math.isnan(total_loss):
                 print('Found nan in total loss')
@@ -122,7 +123,7 @@ def train(argv):
                 torch.nn.utils.clip_grad_norm_(network.parameters(), 5)
             global_step += 1
             if i % FLAGS.log_every == 0:
-                write_to_summary(tb_writter, optimizer, total_loss, depth_loss, minmax_loss, fsnet_loss, prop_loss, recon_loss, global_step)
+                write_to_summary(tb_writter, optimizer, total_loss, depth_loss, chamfer_loss, minmax_loss, fsnet_loss, prop_loss, recon_loss, global_step)
             i += 1
 
         # save model
@@ -138,7 +139,7 @@ def train(argv):
                 '{0}/model_{1:02d}.pth'.format(FLAGS.model_save, epoch))
         torch.cuda.empty_cache()
 
-def write_to_summary(writter, optimizer, total_loss, depth_loss, minmax_loss, fsnet_loss, prop_loss, recon_loss, global_step):
+def write_to_summary(writter, optimizer, total_loss, depth_loss, chamfer_loss, minmax_loss, fsnet_loss, prop_loss, recon_loss, global_step):
     summary = Summary(
         value=[
             Summary.Value(tag='lr', simple_value=optimizer.param_groups[0]["lr"]),
