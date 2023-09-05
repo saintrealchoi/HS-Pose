@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
+from pytorch3d.loss import chamfer_distance
 
 class SILogLoss(nn.Module):  # Main loss function used in AdaBins paper
 	def __init__(self,alpha=10):
