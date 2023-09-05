@@ -293,6 +293,7 @@ class PoseDataset(data.Dataset):
         data_dict['pcl_in'] = torch.as_tensor(pcl_in.astype(np.float32)).contiguous()
         data_dict['rgb_in'] = torch.as_tensor(roi_rgb.astype(np.float32)).contiguous()
         data_dict['depth_valid'] = torch.as_tensor(valid.astype(np.bool8)).contiguous()
+        data_dict['depth_in'] = torch.as_tensor(roi_depth.astype(np.float32)).contiguous()
         data_dict['sample_idx'] = torch.as_tensor(indices).contiguous()
         data_dict['cat_id'] = torch.as_tensor(cat_id, dtype=torch.float32).contiguous()
         data_dict['rotation'] = torch.as_tensor(rotation, dtype=torch.float32).contiguous()
