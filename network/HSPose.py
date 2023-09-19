@@ -56,7 +56,7 @@ class HSPose(nn.Module):
         obj_mask = None
         sketch = None
         
-        rgb = rgb.squeeze(dim=1).permute(0,3,2,1)
+        rgb = rgb.squeeze(dim=1).permute(0,3,1,2)
         feature, _, _ = self.rgbnet(rgb)
         bs = feature.shape[0]
         feature = feature.view(bs,256,256*256).permute(0,2,1)
